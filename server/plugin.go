@@ -1,17 +1,19 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/jyoonje/collabview_plugin/server/command"
-	"github.com/jyoonje/collabview_plugin/server/store/kvstore"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/mattermost/mattermost/server/public/pluginapi"
 	"github.com/mattermost/mattermost/server/public/pluginapi/cluster"
 	"github.com/pkg/errors"
+
+	"github.com/jyoonje/collabview_plugin/server/command"
+	"github.com/jyoonje/collabview_plugin/server/store/kvstore"
 )
 
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
@@ -74,6 +76,29 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 		return nil, model.NewAppError("ExecuteCommand", "plugin.command.execute_command.app_error", nil, err.Error(), http.StatusInternalServerError)
 	}
 	return response, nil
+}
+
+func (p *Plugin) FileWillBeUploaded(c *plugin.Context, info *model.FileInfo, file io.Reader, output io.Writer) (*model.FileInfo, string) {
+	// 예시: .exe 확장자의 파일은 업로드를 거부합니다.
+	if info.Extension == "exe" {
+		return nil, "Executable files are not allowed"
+	}
+
+	p.client.Log.Info("####################################################################################################################")
+	p.client.Log.Info("FileWillBeUploaded override succeeded in collabview_plugin")
+	p.client.Log.Info("####################################################################################################################")
+
+	// 비동기 작업 실행: 파일 업로드 후 추가 처리가 필요한 작업을 고루틴을 사용해 비동기적으로 처리합니다.
+	go func(fileInfo *model.FileInfo) {
+		// 예: 파일에 대한 추가 처리 작업(바이러스 검사, 메타데이터 업데이트 등)
+		p.client.Log.Info("비동기 작업 시작: 파일 ID " + fileInfo.Id)
+		// 여기서 필요한 작업을 수행합니다.
+		// 예를 들어, 시간이 걸리는 작업이나 외부 API 호출 등이 있을 수 있습니다.
+	}(info)
+
+	// 파일을 변경하지 않고 그대로 업로드할 경우:
+	// output에 아무것도 쓰지 않고, nil과 빈 문자열("")을 반환
+	return nil, ""
 }
 
 // See https://developers.mattermost.com/extend/plugins/server/reference/

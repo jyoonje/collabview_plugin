@@ -1,0 +1,1 @@
+module collabview_plugin

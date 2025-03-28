@@ -65,7 +65,8 @@
     "react": "17.0.2",
     "react-redux": "8.0.2",
     "redux": "4.2.0",
-    "typescript": "4.9.5"
+    "typescript": "4.9.5",
+    "mattermost-webapp": "github:mattermost/mattermost-webapp#v6.6.2"
   },
   "overrides": {
     "enzyme-adapter-utils": {

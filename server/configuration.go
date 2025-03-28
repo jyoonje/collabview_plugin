@@ -3,6 +3,7 @@ package main
 import (
 	"reflect"
 
+	"github.com/mattermost/mattermost/server/public/pluginapi"
 	"github.com/pkg/errors"
 )
 
@@ -70,10 +71,13 @@ func (p *Plugin) setConfiguration(configuration *configuration) {
 
 // OnConfigurationChange is invoked when configuration changes may have been made.
 func (p *Plugin) OnConfigurationChange() error {
+	if p.client == nil {
+		p.client = pluginapi.NewClient(p.MattermostPlugin.API, p.MattermostPlugin.Driver)
+	}
 	var configuration = new(configuration)
 
 	// Load the public configuration fields from the Mattermost server configuration.
-	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
+	if err := p.client.Configuration.LoadPluginConfiguration(configuration); err != nil {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
 

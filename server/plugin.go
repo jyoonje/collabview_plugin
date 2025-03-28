@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mattermost/mattermost-plugin-starter-template/server/command"
-	"github.com/mattermost/mattermost-plugin-starter-template/server/store/kvstore"
+	"github.com/jyoonje/collabview_plugin/server/command"
+	"github.com/jyoonje/collabview_plugin/server/store/kvstore"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/mattermost/mattermost/server/public/pluginapi"
@@ -39,14 +39,12 @@ type Plugin struct {
 
 // OnActivate is invoked when the plugin is activated. If an error is returned, the plugin will be deactivated.
 func (p *Plugin) OnActivate() error {
-	p.client = pluginapi.NewClient(p.API, p.Driver)
-
+	p.client = pluginapi.NewClient(p.MattermostPlugin.API, p.MattermostPlugin.Driver)
 	p.kvstore = kvstore.NewKVStore(p.client)
-
 	p.commandClient = command.NewCommandHandler(p.client)
 
 	job, err := cluster.Schedule(
-		p.API,
+		p.MattermostPlugin.API,
 		"BackgroundJob",
 		cluster.MakeWaitForRoundedInterval(1*time.Hour),
 		p.runJob,
@@ -60,11 +58,10 @@ func (p *Plugin) OnActivate() error {
 	return nil
 }
 
-// OnDeactivate is invoked when the plugin is deactivated.
 func (p *Plugin) OnDeactivate() error {
 	if p.backgroundJob != nil {
 		if err := p.backgroundJob.Close(); err != nil {
-			p.API.LogError("Failed to close background job", "err", err)
+			p.client.Log.Error("Failed to close background job", "err", err)
 		}
 	}
 	return nil

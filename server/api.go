@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -19,6 +20,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 
 	apiRouter.HandleFunc("/hello", p.HelloWorld).Methods(http.MethodGet)
 
+	apiRouter.HandleFunc("/fileinfo", p.GetFileInfoHandler).Methods(http.MethodGet)
+
 	router.ServeHTTP(w, r)
 }
 
@@ -36,7 +39,28 @@ func (p *Plugin) MattermostAuthorizationRequired(next http.Handler) http.Handler
 
 func (p *Plugin) HelloWorld(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write([]byte("Hello, world!")); err != nil {
-		p.API.LogError("Failed to write response", "error", err)
+		p.client.Log.Error("Failed to write response", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (p *Plugin) GetFileInfoHandler(w http.ResponseWriter, r *http.Request) {
+	fileID := r.URL.Query().Get("fileID")
+	if fileID == "" {
+		http.Error(w, "Missing fileID", http.StatusBadRequest)
+		return
+	}
+
+	fileInfo, appErr := p.API.GetFile(fileID)
+	if appErr != nil {
+		p.client.Log.Error("Error getting file info", "fileID", fileID, "error", appErr.Error())
+		http.Error(w, appErr.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(fileInfo); err != nil {
+		p.client.Log.Error("Error encoding file info", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

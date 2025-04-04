@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -13,33 +16,20 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/jyoonje/collabview_plugin/server/command"
+	"github.com/jyoonje/collabview_plugin/server/fileconverter"
 	"github.com/jyoonje/collabview_plugin/server/store/kvstore"
 )
 
-// Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
 type Plugin struct {
 	plugin.MattermostPlugin
-
-	// kvstore is the client used to read/write KV records for this plugin.
-	kvstore kvstore.KVStore
-
-	// client is the Mattermost server API client.
-	client *pluginapi.Client
-
-	// commandClient is the client used to register and execute slash commands.
-	commandClient command.Command
-
-	backgroundJob *cluster.Job
-
-	// configurationLock synchronizes access to the configuration.
+	kvstore           kvstore.KVStore
+	client            *pluginapi.Client
+	commandClient     command.Command
+	backgroundJob     *cluster.Job
+	configuration     *configuration
 	configurationLock sync.RWMutex
-
-	// configuration is the active plugin configuration. Consult getConfiguration and
-	// setConfiguration for usage.
-	configuration *configuration
 }
 
-// OnActivate is invoked when the plugin is activated. If an error is returned, the plugin will be deactivated.
 func (p *Plugin) OnActivate() error {
 	p.client = pluginapi.NewClient(p.MattermostPlugin.API, p.MattermostPlugin.Driver)
 	p.kvstore = kvstore.NewKVStore(p.client)
@@ -54,9 +44,7 @@ func (p *Plugin) OnActivate() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to schedule background job")
 	}
-
 	p.backgroundJob = job
-
 	return nil
 }
 
@@ -69,7 +57,6 @@ func (p *Plugin) OnDeactivate() error {
 	return nil
 }
 
-// This will execute the commands that were registered in the NewCommandHandler function.
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	response, err := p.commandClient.Handle(args)
 	if err != nil {
@@ -78,27 +65,234 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 	return response, nil
 }
 
-func (p *Plugin) FileWillBeUploaded(c *plugin.Context, info *model.FileInfo, file io.Reader, output io.Writer) (*model.FileInfo, string) {
-	// 예시: .exe 확장자의 파일은 업로드를 거부합니다.
-	if info.Extension == "exe" {
-		return nil, "Executable files are not allowed"
+func (p *Plugin) getCollabviewRoot() string {
+	// Mattermost가 plugin 실행 시 기준이 되는 경로
+	bundlePath, err := p.API.GetBundlePath()
+	if err != nil {
+		p.API.LogError("현재 작업 디렉토리 가져오기 실패", "error", err.Error())
+		return ""
 	}
 
-	p.client.Log.Info("####################################################################################################################")
-	p.client.Log.Info("FileWillBeUploaded override succeeded in collabview_plugin")
-	p.client.Log.Info("####################################################################################################################")
+	// 상대 경로 기준으로 config 위치 추정
+	configPath := filepath.Join(bundlePath, "config", "plugin_config.json")
 
-	// 비동기 작업 실행: 파일 업로드 후 추가 처리가 필요한 작업을 고루틴을 사용해 비동기적으로 처리합니다.
-	go func(fileInfo *model.FileInfo) {
-		// 예: 파일에 대한 추가 처리 작업(바이러스 검사, 메타데이터 업데이트 등)
-		p.client.Log.Info("비동기 작업 시작: 파일 ID " + fileInfo.Id)
-		// 여기서 필요한 작업을 수행합니다.
-		// 예를 들어, 시간이 걸리는 작업이나 외부 API 호출 등이 있을 수 있습니다.
-	}(info)
+	file, err := os.Open(configPath)
+	if err != nil {
+		p.API.LogError("plugin_config.json 파일 열기 실패", "path", configPath, "error", err.Error())
+		return ""
+	}
+	defer file.Close()
 
-	// 파일을 변경하지 않고 그대로 업로드할 경우:
-	// output에 아무것도 쓰지 않고, nil과 빈 문자열("")을 반환
-	return nil, ""
+	var config map[string]string
+	if err := json.NewDecoder(file).Decode(&config); err != nil {
+		p.API.LogError("plugin_config.json 디코딩 실패", "error", err.Error())
+		return ""
+	}
+
+	root, ok := config["COLLABVIEW_PUBLIC_ROOT"]
+	if !ok || root == "" {
+		p.API.LogError("plugin_config.json 내에 COLLABVIEW_PUBLIC_ROOT 키가 존재하지 않거나 비어있음")
+		return ""
+	}
+
+	p.API.LogInfo("COLLABVIEW_PUBLIC_ROOT 로딩 성공", "path", root)
+	return root
+}
+
+func (p *Plugin) getPythonPath() string {
+	bundlePath, err := p.API.GetBundlePath()
+	if err != nil {
+		p.API.LogError("플러그인 번들 경로 가져오기 실패", "error", err.Error())
+		return ""
+	}
+
+	configPath := filepath.Join(bundlePath, "config", "plugin_config.json")
+
+	file, err := os.Open(configPath)
+	if err != nil {
+		p.API.LogError("plugin_config.json 파일 열기 실패", "path", configPath, "error", err.Error())
+		return ""
+	}
+	defer file.Close()
+
+	var config map[string]string
+	if err := json.NewDecoder(file).Decode(&config); err != nil {
+		p.API.LogError("plugin_config.json 디코딩 실패", "error", err.Error())
+		return ""
+	}
+
+	python, ok := config["PYTHON_PATH"]
+	if !ok || python == "" {
+		p.API.LogError("plugin_config.json 내에 PYTHON_PATH 키가 존재하지 않거나 비어있음")
+		return ""
+	}
+
+	p.API.LogInfo("PYTHON_PATH 로딩 성공", "path", python)
+	return python
+}
+
+func (p *Plugin) getMattermostDataRoot() string {
+	bundlePath, err := p.API.GetBundlePath()
+	if err != nil {
+		p.API.LogError("플러그인 번들 경로 가져오기 실패", "error", err.Error())
+		return ""
+	}
+
+	configPath := filepath.Join(bundlePath, "config", "plugin_config.json")
+
+	file, err := os.Open(configPath)
+	if err != nil {
+		p.API.LogError("plugin_config.json 파일 열기 실패", "path", configPath, "error", err.Error())
+		return ""
+	}
+	defer file.Close()
+
+	var config map[string]string
+	if err := json.NewDecoder(file).Decode(&config); err != nil {
+		p.API.LogError("plugin_config.json 디코딩 실패", "error", err.Error())
+		return ""
+	}
+
+	root, ok := config["MATTERMOST_DATA_ROOT"]
+	if !ok || root == "" {
+		p.API.LogError("plugin_config.json 내에 MATTERMOST_DATA_ROOT 키가 존재하지 않거나 비어있음")
+		return ""
+	}
+
+	p.API.LogInfo("MATTERMOST_DATA_ROOT 로딩 성공", "path", root)
+	return root
+}
+
+func (p *Plugin) getMattermostOutputRoot() string {
+	bundlePath, err := p.API.GetBundlePath()
+	if err != nil {
+		p.API.LogError("플러그인 번들 경로 가져오기 실패", "error", err.Error())
+		return ""
+	}
+
+	configPath := filepath.Join(bundlePath, "config", "plugin_config.json")
+
+	file, err := os.Open(configPath)
+	if err != nil {
+		p.API.LogError("plugin_config.json 파일 열기 실패", "path", configPath, "error", err.Error())
+		return ""
+	}
+	defer file.Close()
+
+	var config map[string]string
+	if err := json.NewDecoder(file).Decode(&config); err != nil {
+		p.API.LogError("plugin_config.json 디코딩 실패", "error", err.Error())
+		return ""
+	}
+
+	root, ok := config["MATTERMOST_OUTPUT_ROOT"]
+	if !ok || root == "" {
+		p.API.LogError("plugin_config.json 내에 MATTERMOST_OUTPUT_ROOT 키가 존재하지 않거나 비어있음")
+		return ""
+	}
+
+	p.API.LogInfo("MATTERMOST_OUTPUT_ROOT 로딩 성공", "path", root)
+	return root
+}
+
+func copyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
+	if len(post.FileIds) == 0 {
+		return
+	}
+
+	p.client.Log.Info("MessageHasBeenPosted: 첨부 파일이 있는 게시글 감지", "postID", post.Id)
+
+	collabviewRoot := p.getCollabviewRoot()
+	pythonPath := p.getPythonPath()
+	mattermostDataRoot := p.getMattermostDataRoot()
+	outputRoot := p.getMattermostOutputRoot()
+
+	if collabviewRoot == "" || pythonPath == "" || mattermostDataRoot == "" || outputRoot == "" {
+		p.API.LogError("COLLABVIEW_PUBLIC_ROOT 또는 PYTHON_PATH 경로가 비어있음. 변환 작업 중단")
+		return
+	}
+
+	_ = os.Setenv("COLLABVIEW_PUBLIC_ROOT", collabviewRoot)
+	_ = os.Setenv("PYTHON_PATH", pythonPath)
+	_ = os.Setenv("MATTERMOST_DATA_ROOT", mattermostDataRoot)
+
+	go func(post *model.Post) {
+		for _, fileID := range post.FileIds {
+			fileInfo, appErr := p.API.GetFileInfo(fileID)
+			if appErr != nil {
+				p.API.LogError("파일 정보 조회 실패", "fileID", fileID, "error", appErr.Error())
+				continue
+			}
+
+			p.API.LogInfo("첨부된 파일 정보", "fileID", fileInfo.Id, "이름", fileInfo.Name, "저장 위치", fileInfo.Path)
+
+			filePath := filepath.Join(mattermostDataRoot, fileInfo.Path)
+
+			err := fileconverter.ConvertToEsob(filePath, post.Id)
+			if err != nil {
+				p.API.LogError("파일 변환 실패", "fileID", fileID, "error", err.Error())
+				continue
+			}
+
+			p.API.LogInfo("파일 변환 성공 및 저장 완료", "fileID", fileID)
+
+			filename := fileInfo.Name
+			esobName := filename[:len(filename)-len(filepath.Ext(filename))] + ".esob"
+
+			destDir := filepath.Join(collabviewRoot, "public", "web", "output", post.Id)
+			sourceDir := filepath.Join(outputRoot, post.Id)
+			sourceFile := filepath.Join(sourceDir, esobName)
+			destFile := filepath.Join(destDir, esobName)
+
+			err = os.MkdirAll(destDir, os.ModePerm)
+			if err != nil {
+				p.API.LogError("변환 파일 대상 디렉토리 생성 실패", "path", destDir, "error", err.Error())
+				return
+			}
+
+			err = copyFile(sourceFile, destFile)
+			if err != nil {
+				p.API.LogError(".esob 파일 복사 실패", "from", sourceFile, "to", destFile, "error", err.Error())
+				return
+			}
+			p.API.LogInfo(".esob 파일 복사 성공", "from", sourceFile, "to", destFile)
+
+			// 복사 후 원본 삭제
+			if err := os.Remove(sourceFile); err != nil {
+				p.API.LogError("원본 .esob 파일 삭제 실패", "path", sourceFile, "error", err.Error())
+			} else {
+				p.API.LogInfo("원본 .esob 파일 삭제 완료", "path", sourceFile)
+			}
+
+			p.API.LogInfo(".esob 파일 이동 성공", "from", sourceFile, "to", destFile)
+
+			if _, err := os.Stat(sourceFile); err == nil {
+				_ = os.Remove(sourceFile)
+				p.API.LogInfo("원본 .esob 파일 삭제 완료", "path", sourceFile)
+			}
+		}
+	}(post)
 }
 
 // See https://developers.mattermost.com/extend/plugins/server/reference/

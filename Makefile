@@ -10,6 +10,9 @@ DLV_DEBUG_PORT := 2346
 DEFAULT_GOOS := $(shell go env GOOS)
 DEFAULT_GOARCH := $(shell go env GOARCH)
 
+include .env
+export
+
 export GO111MODULE=on
 
 # We need to export GOBIN to allow it to be set
@@ -149,7 +152,7 @@ major-rc: ## to bump major release candidate version (semver)
 
 ## Checks the code style, tests, builds and bundles the plugin.
 .PHONY: all
-all: check-style test dist
+all: sync gofmt-fix check-style test dist
 
 ## Ensures the plugin manifest is valid
 .PHONY: manifest-check
@@ -183,7 +186,7 @@ endif
 ifneq ($(HAS_SERVER),)
 	@echo Running golangci-lint
 	$(GO) vet ./...
-	$(GOBIN)/golangci-lint run ./...
+	$(GOBIN)/golangci-lint run ./... --timeout=5m
 endif
 
 ## Builds the server, if it exists, for all supported architectures, unless MM_SERVICESETTINGS_ENABLEDEVELOPER is set.
@@ -243,6 +246,9 @@ endif
 ifneq ($(HAS_WEBAPP),)
 	mkdir -p dist/$(PLUGIN_ID)/webapp
 	cp -r webapp/dist dist/$(PLUGIN_ID)/webapp/
+endif
+ifneq ($(wildcard config/),)
+	cp -r config dist/$(PLUGIN_ID)/
 endif
 	cd dist && tar -cvzf $(BUNDLE_NAME) $(PLUGIN_ID)
 
@@ -408,3 +414,75 @@ ifneq ($(HAS_SERVER),)
 	go install github.com/golang/mock/mockgen@v1.6.0
 	mockgen -destination=server/command/mocks/mock_commands.go -package=mocks github.com/mattermost/mattermost-plugin-starter-template/server/command Command
 endif
+
+SYNC_SRC := /mnt/c/Users/nobut/esob/mattermost_plugin/
+SYNC_DEST := ~/esob/mattermost_plugin
+SYNC_TIMESTAMP := $(SYNC_DEST)/.last_sync
+
+.PHONY: sync
+sync:
+	@echo "🔍 Checking for file changes to sync..."
+	@if [ ! -f $(SYNC_TIMESTAMP) ]; then \
+		echo "⏱️  No previous sync record. Performing full sync..."; \
+		rsync -av \
+			--exclude='.git' \
+			--exclude='webapp/node_modules' \
+			$(SYNC_SRC) $(SYNC_DEST); \
+		touch $(SYNC_TIMESTAMP); \
+	else \
+		CHANGED=$$(rsync -rtn \
+			--exclude='.git' \
+			--exclude='webapp/node_modules' \
+			--out-format="%n" \
+			$(SYNC_SRC) $(SYNC_DEST)); \
+		if [ -n "$$CHANGED" ]; then \
+			echo "📂 Detected changes:"; \
+			echo "$$CHANGED"; \
+			echo "🔁 Syncing changed files..."; \
+			rsync -av \
+				--exclude='.git' \
+				--exclude='webapp/node_modules' \
+				$(SYNC_SRC) $(SYNC_DEST); \
+			touch $(SYNC_TIMESTAMP); \
+		else \
+			echo "✅ No changes detected. Skipping sync."; \
+		fi \
+	fi
+
+
+.PHONY: all
+all: sync check-style test dist
+
+.PHONY: check-style
+check-style: manifest-check apply webapp/node_modules install-go-tools
+	@echo Checking for style guide compliance
+
+ifneq ($(HAS_WEBAPP),)
+	cd webapp && npm run lint
+	cd webapp && npm run check-types
+endif
+
+ifneq ($(HAS_SERVER),)
+	@echo Running golangci-lint
+	$(GO) vet ./...
+	$(GOBIN)/golangci-lint run ./... --timeout=5m
+endif
+
+.PHONY: gofmt-check
+gofmt-check:
+	@echo "🔍 Checking Go code format with 'gofmt -s'..."
+	@UNFORMATTED=$$(gofmt -s -l .); \
+	if [ -n "$$UNFORMATTED" ]; then \
+		echo "❌ These files are not properly formatted:"; \
+		echo "$$UNFORMATTED"; \
+		echo "👉 Run 'make gofmt-fix' to automatically format them."; \
+		exit 1; \
+	else \
+		echo "✅ All Go files are properly formatted."; \
+	fi
+
+.PHONY: gofmt-fix
+gofmt-fix:
+	@echo "🔧 Formatting Go files with 'gofmt -s -w'..."
+	@gofmt -s -w .
+	@echo "✅ Formatting complete."

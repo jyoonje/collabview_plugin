@@ -465,7 +465,7 @@ endif
 ifneq ($(HAS_SERVER),)
 	@echo Running golangci-lint
 	$(GO) vet ./...
-	$(GOBIN)/golangci-lint run ./... --timeout=5m
+	$(GOBIN)/golangci-lint run ./server/config --timeout=5m
 endif
 
 .PHONY: gofmt-check

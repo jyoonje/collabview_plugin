@@ -117,7 +117,7 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 			p.API.LogInfo("파일 변환 성공 및 저장 완료", "fileID", fileID)
 
 			sourceFile := config.GetConvertedFilePath(post.Id, fileInfo.Name)
-			destFile := config.GetFinalOutputPath(post.Id, fileInfo.Name)
+			destFile := config.GetFinalOutputPath(fileInfo.Name)
 			destDir := filepath.Dir(destFile)
 
 			if err := config.EnsureDir(destDir); err != nil {

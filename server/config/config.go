@@ -61,12 +61,12 @@ func GetConvertedFilePath(postID, filename string) string {
 }
 
 // GetFinalOutputPath returns the full destination path for the .esob file.
-func GetFinalOutputPath(postID, filename string) string {
+func GetFinalOutputPath(filename string) string {
 	if cfg == nil {
 		return ""
 	}
 	esobName := changeExtensionToEsob(filename)
-	return filepath.Join(cfg.CollabviewRoot, "public", "web", "output", postID, esobName)
+	return filepath.Join(cfg.CollabviewRoot, "public", "OUT", "destFile", esobName)
 }
 
 // EnsureDir ensures that the given directory exists.

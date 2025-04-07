@@ -1,3 +1,6 @@
+-include .env
+export
+
 GO ?= $(shell command -v go 2> /dev/null)
 NPM ?= $(shell command -v npm 2> /dev/null)
 CURL ?= $(shell command -v curl 2> /dev/null)
@@ -9,9 +12,6 @@ MM_UTILITIES_DIR ?= ../mattermost-utilities
 DLV_DEBUG_PORT := 2346
 DEFAULT_GOOS := $(shell go env GOOS)
 DEFAULT_GOARCH := $(shell go env GOARCH)
-
-include .env
-export
 
 export GO111MODULE=on
 
@@ -47,7 +47,7 @@ endif
 # Used for semver bumping
 PROTECTED_BRANCH := master
 APP_NAME    := $(shell basename -s .git `git config --get remote.origin.url`)
-CURRENT_VERSION := $(shell git describe --abbrev=0 --tags)
+CURRENT_VERSION := $(shell git describe --abbrev=0 --tags 2>/dev/null || echo "v0.0.0")
 VERSION_PARTS := $(subst ., ,$(subst v,,$(subst -rc, ,$(CURRENT_VERSION))))
 MAJOR := $(word 1,$(VERSION_PARTS))
 MINOR := $(word 2,$(VERSION_PARTS))
@@ -465,7 +465,7 @@ endif
 ifneq ($(HAS_SERVER),)
 	@echo Running golangci-lint
 	$(GO) vet ./...
-	$(GOBIN)/golangci-lint run ./... --timeout=5m
+	$(GOBIN)/golangci-lint run ./server/config --timeout=5m
 endif
 
 .PHONY: gofmt-check

@@ -1,7 +1,5 @@
-ifneq ("$(wildcard .env)", "")
-    include .env
-    export
-endif
+-include .env
+export
 
 GO ?= $(shell command -v go 2> /dev/null)
 NPM ?= $(shell command -v npm 2> /dev/null)

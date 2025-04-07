@@ -1,4 +1,5 @@
-name: ci
+name: CI
+
 on:
   schedule:
     - cron: "0 0 * * *"
@@ -13,10 +14,52 @@ permissions:
   contents: read
 
 jobs:
-  plugin-ci:
-    uses: mattermost/actions-workflows/.github/workflows/plugin-ci.yml@main
-    secrets: inherit
-    with:
-      node-version: 20
+  build-and-test:
+    runs-on: ubuntu-latest
+
     env:
       NODE_OPTIONS: --openssl-legacy-provider
+      GO111MODULE: on
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install Go tools
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0
+          go install gotest.tools/gotestsum@v1.7.0
+
+      - name: Install NPM dependencies
+        run: |
+          cd webapp
+          npm install
+
+      - name: Check formatting and style
+        run: make check-style
+
+      - name: Run tests
+        run: make test
+
+      - name: Build plugin
+        run: make dist

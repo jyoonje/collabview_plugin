@@ -10,8 +10,11 @@ DLV_DEBUG_PORT := 2346
 DEFAULT_GOOS := $(shell go env GOOS)
 DEFAULT_GOARCH := $(shell go env GOARCH)
 
-include .env
-export
+ifneq ("$(wildcard .env)", "")
+    include .env
+    export
+endif
+
 
 export GO111MODULE=on
 

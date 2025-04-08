@@ -2,5 +2,8 @@
   "COLLABVIEW_PUBLIC_ROOT": "/mnt/c/Users/nobut/esob/TG/collabview",
   "PYTHON_PATH": "/home/yjjung/esob/mattermost_plugin/collabview_plugin/venv/bin/python",
   "MATTERMOST_DATA_ROOT": "/home/yjjung/esob/mattermost/server/data",
-  "MATTERMOST_OUTPUT_ROOT": "/home/yjjung/esob/mattermost/server/public/web/output"
+  "MATTERMOST_OUTPUT_ROOT": "/home/yjjung/esob/mattermost/server/public/web/output",
+  "COLLABVIEW_PUBLIC_URL": "https://demo.esob.kr:7442",
+  "FILE_CONVERT_OUTPUT_PATH": "/mnt/c/Users/nobut/esob/TG/collabview/public/OUT/destFile",
+  "DISPOSABLE_KEY": "uZfkawrfuxiRrZzWJ"
 }

@@ -69,6 +69,7 @@ func GetFinalOutputPath(filename string) string {
 		return ""
 	}
 	esobName := changeExtensionToEsob(filename)
+
 	return filepath.Join(cfg.FileOutputPath, esobName) // <-- fileID 추가
 }
 

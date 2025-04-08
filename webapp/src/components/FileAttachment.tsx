@@ -2,6 +2,9 @@
 // See LICENSE.txt for license information.
 
 import {useEffect, useCallback} from 'react';
+import {useSelector} from 'react-redux';
+
+import {getCurrentUser} from 'mattermost-redux/selectors/entities/users';
 
 interface MyFileAttachmentProps {
     fileInfo: {
@@ -9,43 +12,31 @@ interface MyFileAttachmentProps {
         name: string;
         extension: string;
     };
-    post: any;
 }
 
 export default function MyFileAttachmentOverride(props: MyFileAttachmentProps) {
+    const currentUser = useSelector(getCurrentUser);
+
     const handleRedirect = useCallback(() => {
         if (props.fileInfo.extension === 'exe') {
             return;
         }
-        const url = 'http://192.168.0.244:3508/cv_call';
-        const params: Record<string, string> = {
-            authority: '1',
-            userName: 'ODM 업체',
-            userID: 'ODM',
-            objectID: '22000',
-            filePath: 'artwork/20241017/1234.jpg',
-        };
 
-        // 동적으로 form 요소 생성
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = url;
-
-        // 숨겨진 input 필드 생성 후 추가
-        for (const key in params) {
-            if (Object.prototype.hasOwnProperty.call(params, key)) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = params[key];
-                form.appendChild(input);
-            }
+        if (!currentUser) {
+            return;
         }
 
-        // 문서에 form 추가 후 제출
-        document.body.appendChild(form);
-        form.submit();
-    }, [props.fileInfo]);
+        const queryParams = new URLSearchParams({
+            file_id: props.fileInfo.id,
+            user_id: currentUser.id,
+            user_name: currentUser.username,
+            authority: '3',
+        });
+
+        const redirectURL = `/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams.toString()}`;
+
+        window.open(redirectURL, '_blank');
+    }, [props.fileInfo, currentUser]);
 
     useEffect(() => {
         handleRedirect();

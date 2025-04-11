@@ -486,3 +486,9 @@ gofmt-fix:
 	@echo "🔧 Formatting Go files with 'gofmt -s -w'..."
 	@gofmt -s -w .
 	@echo "✅ Formatting complete."
+
+.PHONY: check-style-fix
+check-style-fix:
+	@echo "🔧 Formatting front files with 'eslint --fix'..."
+	cd webapp && npx eslint --ignore-pattern node_modules --ignore-pattern dist --ext=.js,.jsx,.tsx,.ts . --fix
+	@echo "✅ ESLint auto-fix complete."

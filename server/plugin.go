@@ -2,9 +2,15 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -109,15 +115,15 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 
 			filePath := filepath.Join(p.cfg.MattermostDataRoot, fileInfo.Path)
 
-			if err := fileconverter.ConvertToEsob(filePath, post.Id); err != nil {
+			if err := fileconverter.ConvertToEsob(filePath, fileInfo.Id); err != nil {
 				p.API.LogError("파일 변환 실패", "fileID", fileID, "error", err.Error())
 				continue
 			}
 
 			p.API.LogInfo("파일 변환 성공 및 저장 완료", "fileID", fileID)
 
-			sourceFile := config.GetConvertedFilePath(post.Id, fileInfo.Name)
-			destFile := config.GetFinalOutputPath(post.Id, fileInfo.Name)
+			sourceFile := config.GetConvertedFilePath(fileInfo.Id, fileInfo.Name)
+			destFile := config.GetFinalOutputPath(fileInfo.Name)
 			destDir := filepath.Dir(destFile)
 
 			if err := config.EnsureDir(destDir); err != nil {
@@ -139,4 +145,83 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 			}
 		}
 	}(post)
+}
+
+func (p *Plugin) FetchFileRedirect(w http.ResponseWriter, r *http.Request) {
+	fileID := r.URL.Query().Get("file_id")
+	if fileID == "" {
+		http.Error(w, "file_id is required", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.URL.Query().Get("user_id")
+	userName := r.URL.Query().Get("user_name")
+	authority := r.URL.Query().Get("authority")
+	if userID == "" || userName == "" || authority == "" {
+		http.Error(w, "Missing required parameters", http.StatusBadRequest)
+		return
+	}
+
+	fileInfo, appErr := p.API.GetFileInfo(fileID)
+	if appErr != nil {
+		p.API.LogError("Failed to get file info", "file_id", fileID, "err", appErr.Error())
+		http.Error(w, "file not found", http.StatusNotFound)
+		return
+	}
+
+	relPath := config.GetRelativeFilePath(fileInfo.Name)
+	if relPath == "" {
+		http.Error(w, "failed to generate file path", http.StatusInternalServerError)
+		return
+	}
+
+	collabviewURL := config.GetCollabviewURL()
+	if collabviewURL == "" {
+		http.Error(w, "collabview url not set", http.StatusInternalServerError)
+		return
+	}
+
+	disposableKey := config.GetDisposableKey()
+	if disposableKey == "" {
+		p.API.LogError("Disposable key not found in config")
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	insertDt := time.Now().Format("06.01.02")
+
+	finalViewerURL := fmt.Sprintf(
+		"%s/web/viewer.html?file=/%s&user_name=%s&disposable_key=%s&object_ID=%s&insert_dt=%s",
+		collabviewURL,
+		strings.TrimPrefix(relPath, "public/"),
+		url.QueryEscape(userName),
+		disposableKey,
+		url.QueryEscape(fileID),
+		insertDt,
+	)
+
+	finalViewerURL = strings.ReplaceAll(finalViewerURL, "+", "%2B")
+
+	requestBody := map[string]string{
+		"objectID": fileID,
+		"finalURL": finalViewerURL,
+	}
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		p.API.LogError("Failed to marshal JSON", "error", err.Error())
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	cvPostURL := fmt.Sprintf("%s/cv_post", collabviewURL)
+
+	// #nosec G107
+	resp, err := http.Post(cvPostURL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		p.API.LogError("Failed to POST to cv_post", "error", err.Error())
+		http.Error(w, "failed to contact viewer server", http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	http.Redirect(w, r, finalViewerURL, http.StatusFound)
 }

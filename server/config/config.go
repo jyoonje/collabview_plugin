@@ -14,6 +14,9 @@ type Config struct {
 	PythonPath         string `json:"PYTHON_PATH"`
 	MattermostDataRoot string `json:"MATTERMOST_DATA_ROOT"`
 	MattermostOutput   string `json:"MATTERMOST_OUTPUT_ROOT"`
+	CollabviewURL      string `json:"COLLABVIEW_PUBLIC_URL"`
+	FileOutputPath     string `json:"FILE_CONVERT_OUTPUT_PATH"`
+	DisposableKey      string `json:"DISPOSABLE_KEY"`
 }
 
 var (
@@ -61,12 +64,36 @@ func GetConvertedFilePath(postID, filename string) string {
 }
 
 // GetFinalOutputPath returns the full destination path for the .esob file.
-func GetFinalOutputPath(postID, filename string) string {
+func GetFinalOutputPath(filename string) string {
 	if cfg == nil {
 		return ""
 	}
 	esobName := changeExtensionToEsob(filename)
-	return filepath.Join(cfg.CollabviewRoot, "public", "web", "output", postID, esobName)
+
+	return filepath.Join(cfg.FileOutputPath, esobName) // <-- fileID 추가
+}
+
+func GetRelativeFilePath(filename string) string {
+	if cfg == nil {
+		return ""
+	}
+	esobName := changeExtensionToEsob(filename)
+
+	return filepath.ToSlash(filepath.Join("OUT", "destfile", esobName))
+}
+
+func GetCollabviewURL() string {
+	if cfg == nil {
+		return ""
+	}
+	return cfg.CollabviewURL
+}
+
+func GetDisposableKey() string {
+	if cfg == nil {
+		return ""
+	}
+	return cfg.DisposableKey
 }
 
 // EnsureDir ensures that the given directory exists.

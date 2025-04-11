@@ -42,7 +42,7 @@ func TestCopyFile(t *testing.T) {
 	defer os.RemoveAll(srcDir)
 
 	content := []byte("unit test content")
-	err = os.WriteFile(srcFile, content, 0644)
+	err = os.WriteFile(srcFile, content, 0600)
 	if err != nil {
 		t.Fatalf("테스트 파일 생성 실패: %v", err)
 	}

@@ -22,6 +22,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 
 	apiRouter.HandleFunc("/fileinfo", p.GetFileInfoHandler).Methods(http.MethodGet)
 
+	apiRouter.HandleFunc("/viewer-redirect", p.FetchFileRedirect).Methods(http.MethodGet)
+
 	router.ServeHTTP(w, r)
 }
 

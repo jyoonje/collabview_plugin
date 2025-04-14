@@ -19,6 +19,16 @@ func ConvertToEsob(inputPath string, outputHash string) error {
 		return fmt.Errorf("환경변수 COLLABVIEW_PYTHON_PATH가 설정되어 있지 않습니다")
 	}
 
+	backupPath, err := BackupOriginalFile(inputPath)
+	if err != nil {
+		return fmt.Errorf("원본 백업 실패: %w", err)
+	}
+	defer func() {
+		if err := RestoreOriginalFile(backupPath, inputPath); err != nil {
+			fmt.Fprintf(os.Stderr, "⚠️ 원본 복원 실패: %v\n", err)
+		}
+	}()
+
 	script := filepath.Join(publicRoot, "public", "web", "convert.py")
 	args := []string{script, inputPath, "--gotenberg", outputHash}
 	cmd := exec.Command(python, args...)

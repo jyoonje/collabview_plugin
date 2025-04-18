@@ -22,38 +22,28 @@ export default function MyFileAttachmentOverride({fileInfo}: MyFileAttachmentPro
     const currentUser = useSelector(getCurrentUser);
 
     useEffect(() => {
-        // ✅ 기본 파일 미리보기 모달 제거
-        const modal = document.querySelector('.file-preview-modal');
-        if (modal) {
-            modal.remove();
+        // 기본 파일 미리보기 제거
+        document.querySelector('.file-preview-modal')?.remove();
+        document.querySelector('.a11y__modal')?.parentElement?.remove();
+
+        if (!currentUser) {
+            return;
         }
 
-        const backdrop = document.querySelector('.a11y__modal')?.parentElement;
-        if (backdrop) {
-            backdrop.remove();
-        }
+        const queryParams = new URLSearchParams({
+            file_id: fileInfo.id,
+            user_id: currentUser.id,
+            user_name: currentUser.username,
+            authority: '3',
+        });
 
-        // ✅ CollabView viewer 열기
-        const launchViewer = async () => {
-            if (!currentUser) {
-                return;
-            }
-
-            const queryParams = new URLSearchParams({
-                file_id: fileInfo.id,
-                user_id: currentUser.id,
-                user_name: currentUser.username,
-                authority: '3',
-            });
-
-            const res = await fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`);
-            const data = await res.json();
-
+        fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`).then((res) => res.json()).then((data) => {
             dispatch(openRHSWithViewer(data.finalURL));
-        };
-
-        launchViewer();
-    }, [fileInfo, currentUser, dispatch]);
+        }).catch((err) => {
+            // eslint-disable-next-line no-console
+            console.error('[MyFileAttachmentOverride] fetch error:', err);
+        });
+    }, [fileInfo.id, currentUser?.id]);
 
     return (
         <div
@@ -64,7 +54,6 @@ export default function MyFileAttachmentOverride({fileInfo}: MyFileAttachmentPro
                 backgroundColor: '#fff',
             }}
         >
-            {/* eslint-disable-next-line react/jsx-no-literals */}
             {'CollabView Viewer Override'}
         </div>
     );

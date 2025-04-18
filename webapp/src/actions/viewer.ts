@@ -11,6 +11,7 @@ export function openRHSWithViewer(finalURL: string) {
             type: RHS_SHOW_VIEWER,
             payload: {
                 finalURL,
+                reloadKey: Date.now(),
             },
         });
 

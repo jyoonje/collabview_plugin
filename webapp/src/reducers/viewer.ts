@@ -5,16 +5,15 @@ import {RHS_SHOW_VIEWER} from '../actions/viewer';
 
 const initialState = {
     finalURL: '',
+    reloadKey: 0,
 };
 
 export default function viewer(state = initialState, action: any) {
     switch (action.type) {
     case RHS_SHOW_VIEWER:
-        // eslint-disable-next-line no-console
-        console.log('[viewer reducer] RHS_SHOW_VIEWER received:', action.payload.finalURL);
         return {
-            ...state,
             finalURL: action.payload.finalURL,
+            reloadKey: action.payload.reloadKey,
         };
     default:
         return state;

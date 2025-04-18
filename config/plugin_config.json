@@ -4,6 +4,7 @@
   "MATTERMOST_DATA_ROOT": "/home/yjjung/esob/mattermost/server/data",
   "MATTERMOST_OUTPUT_ROOT": "/home/yjjung/esob/mattermost/server/public/web/output",
   "COLLABVIEW_PUBLIC_URL": "https://demo.esob.kr:7442",
+  "REQUEST_VIEWER_URL": "https://demo.esob.kr:7442:cv_post",
   "FILE_CONVERT_OUTPUT_PATH": "/mnt/c/Users/nobut/esob/TG/collabview/public/OUT/destFile",
   "DISPOSABLE_KEY": "uZfkawrfuxiRrZzWJ"
 }

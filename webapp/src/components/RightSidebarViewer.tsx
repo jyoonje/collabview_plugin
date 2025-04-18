@@ -10,23 +10,33 @@ export default function RightSidebarViewer() {
     // eslint-disable-next-line no-console
     console.log('Component RightSidebarViewer mounted');
 
-    const finalURL = useSelector((state: GlobalState) =>
-        (state as any)['plugins-kr.esob.collabview-plugin']?.viewer?.finalURL,
+    const {finalURL, reloadKey} = useSelector((state: GlobalState) =>
+        (state as any)['plugins-kr.esob.collabview-plugin']?.viewer ?? {},
     );
     // eslint-disable-next-line no-console
     console.log('finalURL', finalURL);
+    // eslint-disable-next-line no-console
+    console.log('reloadKey', reloadKey);
 
     if (!finalURL) {
         return <div>{'로드할 뷰어 URL이 없습니다.'}</div>;
     }
 
     return (
-        <iframe
-            src={finalURL}
-            width='30%'
-            height='100%'
-            style={{border: 'none'}}
-            title='CollabView Viewer'
-        />
+        <div style={{height: '100%', width: '100%'}}>
+            <iframe
+                key={reloadKey}
+                src={finalURL}
+                width='100%'
+                height='100%'
+                style={{
+                    border: 'none',
+                    display: 'block',
+                    height: '100%',
+                    width: '100%',
+                }}
+                title='CollabView Viewer'
+            />
+        </div>
     );
 }

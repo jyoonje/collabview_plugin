@@ -7,36 +7,23 @@ import {useSelector} from 'react-redux';
 import type {GlobalState} from '@mattermost/types/store';
 
 export default function RightSidebarViewer() {
-    // eslint-disable-next-line no-console
-    console.log('Component RightSidebarViewer mounted');
-
-    const {finalURL, reloadKey} = useSelector((state: GlobalState) =>
-        (state as any)['plugins-kr.esob.collabview-plugin']?.viewer ?? {},
+    const finalURL = useSelector((state: GlobalState) =>
+        (state as any)['plugins-kr.esob.collabview-plugin']?.viewer?.finalURL,
     );
     // eslint-disable-next-line no-console
-    console.log('finalURL', finalURL);
-    // eslint-disable-next-line no-console
-    console.log('reloadKey', reloadKey);
+    console.log('[RightSidebarViewer] Loaded URL:', finalURL);
 
     if (!finalURL) {
         return <div>{'로드할 뷰어 URL이 없습니다.'}</div>;
     }
 
     return (
-        <div style={{height: '100%', width: '100%'}}>
-            <iframe
-                key={reloadKey}
-                src={finalURL}
-                width='100%'
-                height='100%'
-                style={{
-                    border: 'none',
-                    display: 'block',
-                    height: '100%',
-                    width: '100%',
-                }}
-                title='CollabView Viewer'
-            />
-        </div>
+        <iframe
+            src={finalURL}
+            width='100%'
+            height='100%'
+            style={{border: 'none'}}
+            title='CollabView'
+        />
     );
 }

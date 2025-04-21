@@ -22,6 +22,32 @@ export default function MyFileAttachmentOverride({fileInfo}: MyFileAttachmentPro
     const dispatch = useAppDispatch();
     const currentUser = useSelector(getCurrentUser);
 
+    // RHS 너비 확장
+    useEffect(() => {
+        const style = document.createElement('style');
+        style.id = 'collabview-rhs-style';
+        style.innerHTML = `
+            .sidebar-right {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            .sidebar-right__body {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+        `;
+        document.head.appendChild(style);
+
+        return () => {
+            const addedStyle = document.getElementById('collabview-rhs-style');
+            if (addedStyle) {
+                addedStyle.remove();
+            }
+        };
+    }, []);
+
+    // Viewer 로직 실행
     useEffect(() => {
         document.querySelector('.file-preview-modal')?.remove();
         document.querySelector('.a11y__modal')?.parentElement?.remove();

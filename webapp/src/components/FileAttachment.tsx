@@ -47,6 +47,7 @@ export default function MyFileAttachmentOverride({fileInfo}: MyFileAttachmentPro
                     headers: {
                         'Content-Type': 'application/json',
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
                         objectID: fileInfo.name,
                         finalURL,

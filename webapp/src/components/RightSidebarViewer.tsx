@@ -24,6 +24,7 @@ export default function RightSidebarViewer() {
             height='100%'
             style={{border: 'none'}}
             title='CollabView'
+            sandbox='allow-scripts allow-same-origin'
         />
     );
 }

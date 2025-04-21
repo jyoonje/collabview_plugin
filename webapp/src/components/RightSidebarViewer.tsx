@@ -22,8 +22,9 @@ export default function RightSidebarViewer() {
             src={finalURL}
             width='100%'
             height='100%'
+            className='plugin-iframe'
             style={{border: 'none'}}
-            title='CollabView'
+            title='Collabview'
             sandbox='allow-scripts allow-same-origin'
         />
     );

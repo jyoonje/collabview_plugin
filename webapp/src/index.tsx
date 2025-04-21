@@ -30,7 +30,7 @@ export default class Plugin {
         // RHS 사이드바 컴포넌트 등록
         const rhs = registry.registerRightHandSidebarComponent(
             RightSidebarViewer,
-            'CollabView',
+            'Collabview',
         );
         const rhsId = rhs.id;
 

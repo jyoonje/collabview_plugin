@@ -27,16 +27,35 @@ export default function MyFileAttachmentOverride({fileInfo}: MyFileAttachmentPro
         const style = document.createElement('style');
         style.id = 'collabview-rhs-style';
         style.innerHTML = `
-            .sidebar-right {
-                width: 100% !important;
-                max-width: 100% !important;
+            .sidebar--right.sidebar--right--expanded {
+                width: 80vw !important;
+                max-width: 80vw !important;
+                z-index: 9999 !important;
             }
 
-            .sidebar-right__body {
+            .sidebar-right-container,
+            .sidebar--right__content,
+                #rhsContainer {
                 width: 100% !important;
-                max-width: 100% !important;
+                height: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+                flex-grow: 1 !important;
             }
-        `;
+
+            iframe.plugin-iframe {
+                flex: 1 1 auto !important;
+                width: 100% !important;
+                height: 100% !important;
+                border: none !important;
+            }
+
+            .sidebar--right__header {
+                flex-shrink: 0 !important;
+                padding: 8px !important;
+            }
+    `;
+
         document.head.appendChild(style);
 
         return () => {

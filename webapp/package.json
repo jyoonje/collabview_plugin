@@ -40,11 +40,10 @@
     "babel-loader": "9.1.2",
     "babel-plugin-formatjs": "10.3.7",
     "babel-plugin-typescript-to-proptypes": "2.0.0",
-    "cheerio": "1.0.0",
+    "cheerio": "1.0.0-rc.12",
     "css-loader": "6.5.1",
-    "enzyme": "3.11.0",
+    "enzyme": "3.10.0",
     "enzyme-adapter-react-17-updated": "1.0.2",
-    "enzyme-to-json": "3.6.2",
     "eslint": "8.57.1",
     "eslint-plugin-import": "2.31.0",
     "eslint-plugin-react": "7.34.1",
@@ -65,11 +64,11 @@
   "dependencies": {
     "core-js": "3.26.0",
     "mattermost-redux": "5.33.1",
+    "mattermost-webapp": "github:mattermost/mattermost-webapp#v6.6.2",
     "react": "17.0.2",
     "react-redux": "8.0.2",
     "redux": "4.2.0",
-    "typescript": "4.9.5",
-    "mattermost-webapp": "github:mattermost/mattermost-webapp#v6.6.2"
+    "typescript": "4.9.5"
   },
   "overrides": {
     "enzyme-adapter-utils": {
@@ -84,9 +83,6 @@
     ],
     "setupFilesAfterEnv": [
       "@testing-library/jest-dom"
-    ],
-    "snapshotSerializers": [
-      "<rootDir>/node_modules/enzyme-to-json/serializer"
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",

@@ -27,11 +27,14 @@
   },
   "include": [
     "src",
-    "tests"
+    "tests",
+    "types",
+    "webapp"
   ],
   "exclude": [
     "dist",
     "node_modules",
     "!node_modules/@types"
-  ]
+  ],
+  "noImplicitAny": false
 }

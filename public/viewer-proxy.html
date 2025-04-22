@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Redirecting to Collabview...</title>
+</head>
+<body>
+<form id="redirectForm" method="POST" target="_self">
+    <input type="hidden" name="objectID">
+    <input type="hidden" name="finalURL">
+</form>
+<script>
+    (function () {
+        const params = new URLSearchParams(window.location.search);
+        const finalURL = params.get("finalURL");
+        const objectID = params.get("objectID");
+
+        if (!finalURL || !objectID) {
+            document.body.innerText = "Missing required parameters: finalURL or objectID.";
+            return;
+        }
+
+        const form = document.getElementById("redirectForm");
+        form.action = finalURL.replace("/viewer.html", "/cv_post");
+
+        form.querySelector('[name="objectID"]').value = objectID;
+        form.querySelector('[name="finalURL"]').value = finalURL;
+
+        form.submit();
+    })();
+</script>
+</body>
+</html>

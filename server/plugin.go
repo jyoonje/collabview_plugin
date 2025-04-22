@@ -2,7 +2,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -198,30 +197,10 @@ func (p *Plugin) FetchFileRedirect(w http.ResponseWriter, r *http.Request) {
 		url.QueryEscape(fileID),
 		insertDt,
 	)
-
 	finalViewerURL = strings.ReplaceAll(finalViewerURL, "+", "%2B")
 
-	requestBody := map[string]string{
-		"objectID": fileID,
-		"finalURL": finalViewerURL,
-	}
-	jsonData, err := json.Marshal(requestBody)
-	if err != nil {
-		p.API.LogError("Failed to marshal JSON", "error", err.Error())
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	cvPostURL := fmt.Sprintf("%s/cv_post", collabviewURL)
-
-	// #nosec G107
-	resp, err := http.Post(cvPostURL, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		p.API.LogError("Failed to POST to cv_post", "error", err.Error())
-		http.Error(w, "failed to contact viewer server", http.StatusBadGateway)
-		return
-	}
-	defer resp.Body.Close()
-
-	http.Redirect(w, r, finalViewerURL, http.StatusFound)
+	// 응답을 JSON으로 반환
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"finalURL": finalViewerURL})
 }

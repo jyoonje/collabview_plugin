@@ -24,17 +24,14 @@ export default class Plugin {
             dispatch: ThunkDispatch<GlobalState, unknown, AnyAction>;
         },
     ) {
-        // 리듀서 등록
         registry.registerReducer(reducer);
 
-        // RHS 사이드바 컴포넌트 등록
         const rhs = registry.registerRightHandSidebarComponent(
             RightSidebarViewer,
             'Collabview',
         );
         const rhsId = rhs.id;
 
-        // 파일 미리보기 오버라이드 등록
         registry.registerFilePreviewComponent(
             (fileInfo: FileInfo) => {
                 const ext = fileInfo.extension?.toLowerCase().replace(/^\./, '');
@@ -48,7 +45,6 @@ export default class Plugin {
             ),
         );
 
-        // postMessage 기반 RHS 토글
         window.addEventListener('message', (event) => {
             if (event.data?.type === 'openRHSPlugin') {
                 // eslint-disable-next-line no-console

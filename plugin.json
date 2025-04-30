@@ -21,6 +21,25 @@
     "settings_schema": {
         "header": "",
         "footer": "",
-        "settings": []
+        "settings": [
+          {
+            "key": "EnableMarkupThread",
+            "display_name": "Enable Thread Markup",
+            "type": "bool",
+            "default": true
+          },
+          {
+            "key": "EnableMarkupSpeechBubble",
+            "display_name": "Enable Speech-bubble Markup",
+            "type": "bool",
+            "default": true
+          },
+          {
+            "key": "EnableMarkupHand",
+            "display_name": "Enable Hand Markup",
+            "type": "bool",
+            "default": true
+          }
+        ]
     }
 }

@@ -84,8 +84,14 @@ export default function MyFileAttachmentOverride({fileInfo}: MyFileAttachmentPro
             });
 
             try {
-                const res = await fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`);
-                const {finalURL} = await res.json();
+                const resFinalUrl = await fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`);
+                const {finalURL} = await resFinalUrl.json();
+
+                const resMarkups = await fetch('/plugins/kr.esob.collabview-plugin/api/v1/get-markup-options', {
+                    method: 'GET',
+                    credentials: 'include',
+                });
+                const markupOptions = await resMarkups.json();
 
                 const postRes = await fetch(pluginConfig.REQUEST_VIEWER_URL, {
                     method: 'POST',
@@ -99,6 +105,7 @@ export default function MyFileAttachmentOverride({fileInfo}: MyFileAttachmentPro
                         user_name: currentUser.username,
                         authority: '77',
                         requestFlag: 'Mattermost',
+                        options: markupOptions,
                     }),
                 });
 

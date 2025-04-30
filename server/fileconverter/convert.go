@@ -29,7 +29,7 @@ func ConvertToEsob(inputPath string, outputHash string) error {
 		}
 	}()
 
-	script := filepath.Join(publicRoot, "public", "web", "mm_convert.py")
+	script := filepath.Join(publicRoot, "public", "web", "convert.py")
 	args := []string{script, inputPath, "--gotenberg", outputHash}
 	cmd := exec.Command(python, args...)
 

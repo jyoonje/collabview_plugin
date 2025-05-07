@@ -105,7 +105,7 @@ export default function MyFileAttachmentOverride({fileInfo}: MyFileAttachmentPro
                         user_name: currentUser.username,
                         authority: '77',
                         requestFlag: 'Mattermost',
-                        options: markupOptions,
+                        markups: markupOptions,
                     }),
                 });
 

@@ -2,6 +2,6 @@
 // See LICENSE.txt for license information.
 
 export const SUPPORTED_FILE_PREVIEW_EXTENSIONS = new Set<string>([
-    'pdf', 'docx', 'pptx', 'xlsx', 'txt', 'csv', 'esob',
-    'png', 'jpg', 'jpeg', 'svg', 'psd', 'ai',
+    'pdf', 'docx', 'pptx', 'xlsx',
+    'png', 'jpg', 'jpeg',
 ]);

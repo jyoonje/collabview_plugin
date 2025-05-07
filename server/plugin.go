@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -203,4 +204,50 @@ func (p *Plugin) FetchFileRedirect(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"finalURL": finalViewerURL})
+}
+
+func (p *Plugin) GetMarkupOptionsFromSystemConsole() map[string]bool {
+	options := map[string]bool{
+		"thread":       false,
+		"speechbubble": false,
+		"hand":         false,
+	}
+
+	plugins := p.API.GetUnsanitizedConfig().PluginSettings.Plugins
+
+	raw, ok := any(plugins["kr.esob.collabview-plugin"]).(map[string]any)
+	if !ok {
+		p.API.LogError("Invalid type: expected map[string]any")
+		return options
+	}
+
+	getBool := func(key string) bool {
+		val, ok := raw[key]
+		if !ok {
+			return false
+		}
+		switch v := val.(type) {
+		case string:
+			return strings.ToLower(v) == "true"
+		case bool:
+			return v
+		default:
+			return false
+		}
+	}
+
+	options["thread"] = getBool("enablemarkupthread")
+	options["speechbubble"] = getBool("enablemarkupspeechbubble")
+	options["hand"] = getBool("enablemarkuphand")
+
+	p.API.LogInfo("[DEBUG] All raw keys", "keys", reflect.ValueOf(raw).MapKeys())
+	p.API.LogInfo("Final markup options", "options", options)
+	return options
+}
+
+func (p *Plugin) handleGetMarkupOptions(w http.ResponseWriter, r *http.Request) {
+	options := p.GetMarkupOptionsFromSystemConsole()
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(options)
 }

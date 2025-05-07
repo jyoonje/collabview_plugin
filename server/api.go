@@ -24,6 +24,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 
 	apiRouter.HandleFunc("/viewer-redirect", p.FetchFileRedirect).Methods(http.MethodGet)
 
+	apiRouter.HandleFunc("/get-markup-options", p.handleGetMarkupOptions).Methods(http.MethodGet)
+
 	router.ServeHTTP(w, r)
 }
 

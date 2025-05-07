@@ -95,50 +95,51 @@ export default function MyFileAttachmentOverride({fileInfo}: MyFileAttachmentPro
                 document.head.appendChild(style);
             }
 
-        const launchViewer = async () => {
-            const queryParams = new URLSearchParams({
-                file_id: fileInfo.id,
-                user_id: currentUser.id,
-                user_name: currentUser.username,
-                authority: '3',
-            });
-
-            try {
-                const resFinalUrl = await fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`);
-                const {finalURL} = await resFinalUrl.json();
-
-                const resMarkups = await fetch('/plugins/kr.esob.collabview-plugin/api/v1/get-markup-options', {
-                    method: 'GET',
-                    credentials: 'include',
-                });
-                const markupOptions = await resMarkups.json();
-
-                const postRes = await fetch(pluginConfig.REQUEST_VIEWER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        objectID: fileInfo.name,
-                        finalURL,
-                        user_name: currentUser.username,
-                        authority: '77',
-                        requestFlag: 'Mattermost',
-                        markups: markupOptions,
-                    }),
+            const launchViewer = async () => {
+                const queryParams = new URLSearchParams({
+                    file_id: fileInfo.id,
+                    user_id: currentUser.id,
+                    user_name: currentUser.username,
+                    authority: '3',
                 });
 
-                const json = await postRes.json();
-                dispatch(openRHSWithViewer(json.finalURL));
-            } catch (err) {
-                // eslint-disable-next-line no-console
-                console.error('[MyFileAttachmentOverride] viewer setup error:', err);
-            }
-        };
-          
-        launchViewer();
-     }
+                try {
+                    const resFinalUrl = await fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`);
+                    const {finalURL} = await resFinalUrl.json();
+
+                    const resMarkups = await fetch('/plugins/kr.esob.collabview-plugin/api/v1/get-markup-options', {
+                        method: 'GET',
+                        credentials: 'include',
+                    });
+                    const markupOptions = await resMarkups.json();
+
+                    const postRes = await fetch(pluginConfig.REQUEST_VIEWER_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            objectID: fileInfo.name,
+                            finalURL,
+                            user_name: currentUser.username,
+                            authority: '77',
+                            requestFlag: 'Mattermost',
+                            markups: markupOptions,
+                        }),
+                    });
+
+                    const json = await postRes.json();
+                    dispatch(openRHSWithViewer(json.finalURL));
+                } catch (err) {
+                    // eslint-disable-next-line no-console
+                    console.error('[MyFileAttachmentOverride] viewer setup error:', err);
+                }
+            };
+
+            launchViewer();
+        }
+
         // 비-SUPPORTED 확장자는 아무 것도 하지 않고 기본 모달 유지
         return () => {
             document.getElementById('collabview-rhs-style')?.remove();

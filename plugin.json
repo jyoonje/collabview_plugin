@@ -1,45 +1,106 @@
 {
-    "id": "kr.esob.collabview-plugin",
-    "name": "Collabview Plugin",
-    "description": "This plugin adds Collabview functionality to enable collaborative document sharing within Mattermost.",
-    "homepage_url": "https://github.com/jyoonje/collabview_plugin",
-    "support_url": "https://github.com/jyoonje/collabview_plugin/issues",
-    "icon_path": "assets/starter-template-icon.svg",
-    "min_server_version": "6.2.1",
-    "server": {
-        "executables": {
-            "linux-amd64": "server/dist/plugin-linux-amd64",
-            "linux-arm64": "server/dist/plugin-linux-arm64",
-            "darwin-amd64": "server/dist/plugin-darwin-amd64",
-            "darwin-arm64": "server/dist/plugin-darwin-arm64",
-            "windows-amd64": "server/dist/plugin-windows-amd64.exe"
-        }
-    },
-    "webapp": {
-        "bundle_path": "webapp/dist/main.js"
-    },
-    "settings_schema": {
-        "header": "",
-        "footer": "",
-        "settings": [
-          {
-            "key": "EnableMarkupThread",
-            "display_name": "Enable Thread Markup",
-            "type": "bool",
-            "default": true
-          },
-          {
-            "key": "EnableMarkupSpeechBubble",
-            "display_name": "Enable Speech-bubble Markup",
-            "type": "bool",
-            "default": true
-          },
-          {
-            "key": "EnableMarkupHand",
-            "display_name": "Enable Hand Markup",
-            "type": "bool",
-            "default": true
-          }
-        ]
+  "id": "kr.esob.collabview-plugin",
+  "name": "Collabview Plugin",
+  "description": "This plugin adds Collabview functionality to enable collaborative document sharing within Mattermost.",
+  "homepage_url": "https://github.com/jyoonje/collabview_plugin",
+  "support_url": "https://github.com/jyoonje/collabview_plugin/issues",
+  "icon_path": "assets/starter-template-icon.svg",
+  "min_server_version": "6.2.1",
+  "server": {
+    "executables": {
+      "linux-amd64": "server/dist/plugin-linux-amd64",
+      "linux-arm64": "server/dist/plugin-linux-arm64",
+      "darwin-amd64": "server/dist/plugin-darwin-amd64",
+      "darwin-arm64": "server/dist/plugin-darwin-arm64",
+      "windows-amd64": "server/dist/plugin-windows-amd64.exe"
     }
+  },
+  "webapp": {
+    "bundle_path": "webapp/dist/main.js"
+  },
+  "settings_schema": {
+    "header": "",
+    "footer": "",
+    "settings": [
+      {
+        "key": "view_markup_button",
+        "display_name": "Enable View Markup Button",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "key": "view_markup_color_toolbar",
+        "display_name": "Enable View Markup Color Toolbar",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "key": "view_export_pdf_button",
+        "display_name": "Enable View Export PDF Button",
+        "type": "bool",
+        "default": true
+      }
+    ,
+      {
+        "key": "view_speech_bubble_button",
+        "display_name": "Enable View Speech-bubble Button",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "key": "view_speech_bubble_color_toolbar",
+        "display_name": "Enable View Speech-bubble Color Toolbar",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "key": "view_first_markup",
+        "display_name": "Enable View First Markup",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "key": "view_first_speechbubble",
+        "display_name": "Enable View First Speech-bubble Markup",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "key": "allow_markup_creation",
+        "display_name": "Enable Markup Creation",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "key": "allow_markup_move",
+        "display_name": "Enable Markup Move",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "key": "allow_speech_bubble_creation",
+        "display_name": "Enable Speech-bubble Creation",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "key": "allow_speech_bubble_move",
+        "display_name": "Enable Speech-bubble Move",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "key": "allow_view_chatting",
+        "display_name": "Enable View Chatting",
+        "type": "bool",
+        "default": true
+      },
+      {
+        "key": "allow_use_chatting",
+        "display_name": "Enable Use Chatting",
+        "type": "bool",
+        "default": true
+      }
+    ]
+  }
 }

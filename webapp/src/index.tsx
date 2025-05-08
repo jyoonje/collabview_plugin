@@ -18,6 +18,11 @@ import {SUPPORTED_FILE_PREVIEW_EXTENSIONS} from '@/constants/filePreview';
 import type {FileInfo} from '@/types/files';
 
 function showUnsupportedFileToast(message: string, duration = 3000) {
+    const modal = document.querySelector('.file-preview-modal');
+    if (!(modal instanceof HTMLElement) || modal.style.display === 'none') {
+        return; // 모달이 없거나 숨겨져 있으면 아무것도 하지 않음
+    }
+
     const toastId = 'collabview-unsupported-toast';
 
     // 이미 표시 중이면 무시
@@ -100,6 +105,8 @@ export default class Plugin {
             if (event.data?.type === 'closeRHSPlugin') {
                 try {
                     if (rhs?.hideRHSPlugin) {
+                        // eslint-disable-next-line no-console
+                        console.log('[Plugin] Hide RHS, event:', event);
                         rhs.hideRHSPlugin(store.dispatch, store.getState);
                     } else {
                         store.dispatch(toggleRHS(''));

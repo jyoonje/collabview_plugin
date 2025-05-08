@@ -123,7 +123,7 @@ export default function MyFileAttachmentOverride({fileInfo}: MyFileAttachmentPro
                             objectID: fileInfo.name,
                             finalURL,
                             user_name: currentUser.username,
-                            authority: '77',
+                            authority: '100',
                             requestFlag: 'Mattermost',
                             markups: markupOptions,
                         }),

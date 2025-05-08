@@ -208,9 +208,19 @@ func (p *Plugin) FetchFileRedirect(w http.ResponseWriter, r *http.Request) {
 
 func (p *Plugin) GetMarkupOptionsFromSystemConsole() map[string]bool {
 	options := map[string]bool{
-		"thread":       false,
-		"speechbubble": false,
-		"hand":         false,
+		"view_markup_button":               false,
+		"view_markup_color_toolbar":        false,
+		"view_export_pdf_button":           false,
+		"view_speech_bubble_button":        false,
+		"view_speech_bubble_color_toolbar": false,
+		"view_first_markup":                false,
+		"view_first_speechbubble":          false,
+		"allow_markup_creation":            false,
+		"allow_markup_move":                false,
+		"allow_speech_bubble_creation":     false,
+		"allow_speech_bubble_move":         false,
+		"allow_view_chatting":              false,
+		"allow_use_chatting":               false,
 	}
 
 	plugins := p.API.GetUnsanitizedConfig().PluginSettings.Plugins
@@ -220,6 +230,13 @@ func (p *Plugin) GetMarkupOptionsFromSystemConsole() map[string]bool {
 		p.API.LogError("Invalid type: expected map[string]any")
 		return options
 	}
+
+	p.API.LogInfo("############################################################")
+	p.API.LogInfo("[DEBUG] Dumping all plugin settings from System Console")
+	for k, v := range raw {
+		p.API.LogInfo("[DEBUG] Plugin setting", "key", k, "value", fmt.Sprintf("%v", v), "type", fmt.Sprintf("%T", v))
+	}
+	p.API.LogInfo("############################################################")
 
 	getBool := func(key string) bool {
 		val, ok := raw[key]
@@ -236,9 +253,19 @@ func (p *Plugin) GetMarkupOptionsFromSystemConsole() map[string]bool {
 		}
 	}
 
-	options["thread"] = getBool("enablemarkupthread")
-	options["speechbubble"] = getBool("enablemarkupspeechbubble")
-	options["hand"] = getBool("enablemarkuphand")
+	options["view_markup_button"] = getBool("view_markup_button")
+	options["view_markup_color_toolbar"] = getBool("view_markup_color_toolbar")
+	options["view_export_pdf_button"] = getBool("view_export_pdf_button")
+	options["view_speech_bubble_button"] = getBool("view_speech_bubble_button")
+	options["view_speech_bubble_color_toolbar"] = getBool("view_speech_bubble_color_toolbar")
+	options["view_first_markup"] = getBool("view_first_markup")
+	options["view_first_speechbubble"] = getBool("view_first_speechbubble")
+	options["allow_markup_creation"] = getBool("allow_markup_creation")
+	options["allow_markup_move"] = getBool("allow_markup_move")
+	options["allow_speech_bubble_creation"] = getBool("allow_speech_bubble_creation")
+	options["allow_speech_bubble_move"] = getBool("allow_speech_bubble_move")
+	options["allow_view_chatting"] = getBool("allow_view_chatting")
+	options["allow_use_chatting"] = getBool("allow_use_chatting")
 
 	p.API.LogInfo("[DEBUG] All raw keys", "keys", reflect.ValueOf(raw).MapKeys())
 	p.API.LogInfo("Final markup options", "options", options)

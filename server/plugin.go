@@ -156,8 +156,7 @@ func (p *Plugin) FetchFileRedirect(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.URL.Query().Get("user_id")
 	userName := r.URL.Query().Get("user_name")
-	authority := r.URL.Query().Get("authority")
-	if userID == "" || userName == "" || authority == "" {
+	if userID == "" || userName == "" {
 		http.Error(w, "Missing required parameters", http.StatusBadRequest)
 		return
 	}

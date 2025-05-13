@@ -5,6 +5,7 @@ import {RHS_SHOW_VIEWER} from '../actions/viewer';
 
 const initialState = {
     finalURL: '',
+    fileId: '',
 };
 
 export default function viewer(state = initialState, action: any) {
@@ -12,6 +13,7 @@ export default function viewer(state = initialState, action: any) {
     case RHS_SHOW_VIEWER:
         return {
             finalURL: action.payload.finalURL,
+            fileId: action.payload.fileId,
         };
     default:
         return state;

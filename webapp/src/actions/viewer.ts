@@ -5,14 +5,16 @@ import type {Dispatch} from 'redux';
 
 export const RHS_SHOW_VIEWER = 'RHS_SHOW_VIEWER';
 
-export function openRHSWithViewer(finalURL: string) {
+export function setViewerURL(finalURL: string, fileId: string) {
+    return {
+        type: RHS_SHOW_VIEWER,
+        payload: {finalURL, fileId},
+    };
+}
+
+export function openRHSWithViewer(finalURL: string, fileId: string) {
     return (dispatch: Dispatch) => {
-        dispatch({
-            type: RHS_SHOW_VIEWER,
-            payload: {
-                finalURL,
-            },
-        });
+        dispatch(setViewerURL(finalURL, fileId));
 
         window.postMessage({type: 'openRHSPlugin'}, window.origin);
     };

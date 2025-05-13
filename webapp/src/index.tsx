@@ -8,6 +8,7 @@ import type {ThunkDispatch} from 'redux-thunk';
 
 import type {GlobalState} from '@mattermost/types/store';
 
+import {openRHSWithViewer} from './actions/viewer';
 import RHSViewerLauncher from './components/RHSViewerLauncher';
 import RightSidebarViewer from './components/RightSidebarViewer';
 import manifest from './manifest';
@@ -17,7 +18,13 @@ import {registerMessageListener} from './utils/registerMessageListener';
 
 import {CV_SUPPORTED_FILE_EXTENSIONS} from '@/constants/filePreview';
 import type {FileInfo} from '@/types/files';
-import {getFileExtension} from '@/utils/file';
+import {
+    getFileExtension,
+    getLastClickedFileId,
+    getLastHandledFileId,
+    setLastHandledFileId,
+    updateLastClickedFileId,
+} from '@/utils/file';
 
 /* eslint-disable no-console */
 export default class Plugin {
@@ -40,23 +47,83 @@ export default class Plugin {
             toggleRHSPlugin?: (dispatch: any, getState: any) => void;
         };
 
+        let lastExecutionTime = 0;
+        const EXECUTION_GAP_MS = 400;
+
         registry.registerFilePreviewComponent(
             (fileInfo: FileInfo) => {
                 const ext = getFileExtension(fileInfo);
-
                 return CV_SUPPORTED_FILE_EXTENSIONS.has(ext);
             },
-            (props) => (
-                <RHSViewerLauncher
-                    key={props.fileInfo.id}
-                    fileInfo={props.fileInfo}
-                    store={store}
-                    rhsId={rhs.id}
-                />
-            ),
+            (props) => {
+                const now = Date.now();
+                if (now - lastExecutionTime < EXECUTION_GAP_MS) {
+                    console.log('[Collabview] Throttled duplicate call ignored.');
+                    return null;
+                }
+                lastExecutionTime = now;
+
+                const ext = getFileExtension(props.fileInfo);
+                const previousFileId = getLastClickedFileId();
+                const lastHandledFileId = getLastHandledFileId();
+
+                console.log('[Collabview] Checking RHS toggle condition:', {
+                    previousFileId,
+                    currentFileId: props.fileInfo.id,
+                    lastHandledFileId,
+                });
+
+                if (previousFileId && previousFileId === props.fileInfo.id) {
+                    console.log('[Collabview] Same file clicked again, toggling RHS off.');
+                    rhs.toggleRHSPlugin?.(store.dispatch, store.getState);
+                    updateLastClickedFileId('');
+                    setLastHandledFileId('');
+                    return null;
+                }
+
+                if (lastHandledFileId === props.fileInfo.id) {
+                    console.log('[Collabview] Skipping duplicate processing for file:', props.fileInfo.id);
+                    setLastHandledFileId('');
+                    return null;
+                }
+
+                setLastHandledFileId(props.fileInfo.id);
+                updateLastClickedFileId(props.fileInfo.id);
+
+                if (CV_SUPPORTED_FILE_EXTENSIONS.has(ext)) {
+                    const state = store.getState();
+                    const currentUserId = state.entities.users.currentUserId;
+                    const currentUser = currentUserId ? state.entities.users.profiles[currentUserId] : null;
+
+                    if (currentUser) {
+                        const queryParams = new URLSearchParams({
+                            file_id: props.fileInfo.id,
+                            user_id: currentUser.id,
+                            user_name: currentUser.username,
+                        });
+
+                        // ✅ ESLint 포맷 유지
+                        fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`).then((res) => res.json()).then(({finalURL}) => {
+                            store.dispatch(openRHSWithViewer(finalURL, props.fileInfo.id));
+                        }).catch((error) => {
+                            console.error('[Collabview] Failed to load viewer URL:', error);
+                        });
+                    }
+                }
+
+                return (
+                    <RHSViewerLauncher
+                        key={props.fileInfo.id}
+                        fileInfo={props.fileInfo}
+                        store={store}
+                        rhsId={rhs.id}
+                    />
+                );
+            },
         );
-        registerMessageListener(store, rhs); // Collabview 지원 파일 클릭 시 RHS 열기용 메시지 리스너
-        registerFileClickHandler(store); // Collabview 지원하지 않는 파일 클릭 시 기본 미리보기를 위한 핸들러
+
+        registerMessageListener(store, rhs);
+        registerFileClickHandler(store);
     }
 
     public uninitialize() {}

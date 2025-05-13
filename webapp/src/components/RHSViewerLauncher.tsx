@@ -15,7 +15,7 @@ import {openRHSWithViewer} from '../actions/viewer';
 import {useAppDispatch} from '../hooks';
 
 import {CV_SUPPORTED_FILE_EXTENSIONS} from '@/constants/filePreview';
-import {getFileExtension} from '@/utils/file';
+import {getFileExtension, updateLastClickedFileId} from '@/utils/file';
 import {injectRHSStyle, COLLAVIEW_RHS_STYLE_ID, COLLAVIEW_RHS_CSS} from '@/utils/style';
 
 /* eslint-disable no-console */
@@ -32,11 +32,41 @@ interface RHSViewerLauncher {
     rhsId: string;
 }
 
+// Collabview 서버에 세션 데이터를 저장하는 함수
+async function storeSessionDataOnCollabview(
+    requestUrl: string,
+    fileName: string,
+    finalURL: string,
+    username: string,
+    markupOptions: any,
+) {
+    const postRes = await fetch(requestUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+            objectID: fileName,
+            finalURL,
+            user_name: username,
+            authority: '100',
+            requestFlag: 'Mattermost',
+            markups: markupOptions,
+        }),
+    });
+
+    return postRes.json();
+}
+
 export default function RHSViewerLauncher({fileInfo}: RHSViewerLauncher) {
     const dispatch = useAppDispatch();
     const currentUser = useSelector(getCurrentUser);
 
+    console.log('currentUsercurrentUser:', currentUser);
+
     useEffect(() => {
+        console.log('useEffectuseEffect:', useEffect);
         const ext = getFileExtension(fileInfo);
 
         // SUPPORTED 확장자인 경우만 기본 프리뷰 제거 + RHS 열기
@@ -69,8 +99,11 @@ export default function RHSViewerLauncher({fileInfo}: RHSViewerLauncher) {
                 });
 
                 try {
+                    updateLastClickedFileId(fileInfo.id);
+
                     const resFinalUrl = await fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`);
                     const {finalURL} = await resFinalUrl.json();
+                    console.log('finalURLBRUHHH:', finalURL);
 
                     const resMarkups = await fetch('/plugins/kr.esob.collabview-plugin/api/v1/get-markup-options', {
                         method: 'GET',
@@ -78,24 +111,15 @@ export default function RHSViewerLauncher({fileInfo}: RHSViewerLauncher) {
                     });
                     const markupOptions = await resMarkups.json();
 
-                    const postRes = await fetch(pluginConfig.REQUEST_VIEWER_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            objectID: fileInfo.name,
-                            finalURL,
-                            user_name: currentUser.username,
-                            authority: '100',
-                            requestFlag: 'Mattermost',
-                            markups: markupOptions,
-                        }),
-                    });
+                    const json = await storeSessionDataOnCollabview(
+                        pluginConfig.REQUEST_VIEWER_URL,
+                        fileInfo.name,
+                        finalURL,
+                        currentUser.username,
+                        markupOptions,
+                    );
 
-                    const json = await postRes.json();
-                    dispatch(openRHSWithViewer(json.finalURL));
+                    dispatch(openRHSWithViewer(json.finalURL, fileInfo.id));
                 } catch (err) {
                     console.error('[MyFileAttachmentOverride] viewer setup error:', err);
                 }

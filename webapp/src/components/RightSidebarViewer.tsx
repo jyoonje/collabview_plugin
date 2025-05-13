@@ -6,11 +6,11 @@ import {useSelector} from 'react-redux';
 
 import type {GlobalState} from '@mattermost/types/store';
 
+/* eslint-disable no-console */
 export default function RightSidebarViewer() {
     const finalURL = useSelector((state: GlobalState) =>
         (state as any)['plugins-kr.esob.collabview-plugin']?.viewer?.finalURL,
     );
-    // eslint-disable-next-line no-console
     console.log('[RightSidebarViewer] Loaded URL:', finalURL);
 
     if (!finalURL) {

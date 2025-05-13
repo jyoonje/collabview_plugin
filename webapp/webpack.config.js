@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const exec = require('child_process').exec;
 
 const path = require('path');
@@ -12,7 +13,6 @@ if (NPM_TARGET === 'build:watch' || NPM_TARGET === 'debug:watch') {
     plugins.push({
         apply: (compiler) => {
             compiler.hooks.watchRun.tap('WatchStartPlugin', () => {
-                // eslint-disable-next-line no-console
                 console.log('Change detected. Rebuilding webapp.');
             });
             compiler.hooks.afterEmit.tap('AfterEmitPlugin', () => {

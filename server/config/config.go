@@ -64,25 +64,25 @@ func GetConvertedFilePath(postID, filename string) string {
 }
 
 // GetFinalOutputPath returns the full destination path for the .esob file.
-func GetFinalOutputPath(filename string) string {
+func GetFinalOutputPath(fileID, filename string) string {
 	if cfg == nil {
 		return ""
 	}
 	esobName := changeExtensionToEsob(filename)
 
-	return filepath.Join(cfg.FileOutputPath, esobName) // <-- fileID 추가
+	return filepath.Join(cfg.FileOutputPath, fileID, esobName) // <-- fileID 추가
 	// ex: destFile과 파일 사이 디렉토리 생성 후, 디렉토리 명을 fileId 값으로
 	// 업로드하여 변환 직전에 fileId로 이미 변환되었는지 예외처리
 	// plugin_config.json 파일 수정
 }
 
-func GetRelativeFilePath(filename string) string {
+func GetRelativeFilePath(fileID, filename string) string {
 	if cfg == nil {
 		return ""
 	}
 	esobName := changeExtensionToEsob(filename)
 
-	return filepath.ToSlash(filepath.Join("OUT", "destfile", esobName))
+	return filepath.ToSlash(filepath.Join("OUT", "destfile", fileID, esobName))
 }
 
 func GetCollabviewURL() string {

@@ -113,6 +113,15 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 
 			p.API.LogInfo("첨부된 파일 정보", "fileID", fileInfo.Id, "이름", fileInfo.Name, "저장 위치", fileInfo.Path)
 
+			sourceFile := config.GetConvertedFilePath(fileInfo.Id, fileInfo.Name)
+			destFile := config.GetFinalOutputPath(fileInfo.Id, fileInfo.Name)
+			destDir := filepath.Dir(destFile)
+
+			if _, err := os.Stat(destFile); err == nil {
+				p.API.LogInfo("이미 변환된 파일이 존재하므로 변환을 건너뜁니다.", "fileID", fileInfo.Id, "path", destFile)
+				continue
+			}
+
 			filePath := filepath.Join(p.cfg.MattermostDataRoot, fileInfo.Path)
 
 			if err := fileconverter.ConvertToEsob(filePath, fileInfo.Id); err != nil {
@@ -121,10 +130,6 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 			}
 
 			p.API.LogInfo("파일 변환 성공 및 저장 완료", "fileID", fileID)
-
-			sourceFile := config.GetConvertedFilePath(fileInfo.Id, fileInfo.Name)
-			destFile := config.GetFinalOutputPath(fileInfo.Name)
-			destDir := filepath.Dir(destFile)
 
 			if err := config.EnsureDir(destDir); err != nil {
 				p.API.LogError("변환 파일 대상 디렉토리 생성 실패", "path", destDir, "error", err.Error())
@@ -168,7 +173,7 @@ func (p *Plugin) FetchFileRedirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	relPath := config.GetRelativeFilePath(fileInfo.Name)
+	relPath := config.GetRelativeFilePath(fileID, fileInfo.Name)
 	if relPath == "" {
 		http.Error(w, "failed to generate file path", http.StatusInternalServerError)
 		return

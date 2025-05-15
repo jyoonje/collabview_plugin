@@ -12,6 +12,7 @@ import (
 type Config struct {
 	CollabviewRoot     string `json:"COLLABVIEW_PUBLIC_ROOT"`
 	PythonPath         string `json:"PYTHON_PATH"`
+	PythonDirPath      string `json:"PYTHON_DIR_PATH"`
 	MattermostDataRoot string `json:"MATTERMOST_DATA_ROOT"`
 	MattermostOutput   string `json:"MATTERMOST_OUTPUT_ROOT"`
 	CollabviewURL      string `json:"COLLABVIEW_PUBLIC_URL"`

@@ -103,7 +103,6 @@ export default function RHSViewerLauncher({fileInfo}: RHSViewerLauncher) {
 
                     const resFinalUrl = await fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`);
                     const {finalURL} = await resFinalUrl.json();
-                    console.log('finalURLBRUHHH:', finalURL);
 
                     const resMarkups = await fetch('/plugins/kr.esob.collabview-plugin/api/v1/get-markup-options', {
                         method: 'GET',

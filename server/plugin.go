@@ -49,6 +49,7 @@ func (p *Plugin) OnActivate() error {
 
 	_ = os.Setenv("COLLABVIEW_PUBLIC_ROOT", p.cfg.CollabviewRoot)
 	_ = os.Setenv("PYTHON_PATH", p.cfg.PythonPath)
+	_ = os.Setenv("PYTHON_DIR_PATH", p.cfg.PythonDirPath)
 	_ = os.Setenv("MATTERMOST_DATA_ROOT", p.cfg.MattermostDataRoot)
 
 	job, err := cluster.Schedule(
@@ -130,6 +131,8 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 			}
 
 			p.API.LogInfo("파일 변환 성공 및 저장 완료", "fileID", fileID)
+
+			// 이 시점에 Searchable PDF 호출
 
 			if err := config.EnsureDir(destDir); err != nil {
 				p.API.LogError("변환 파일 대상 디렉토리 생성 실패", "path", destDir, "error", err.Error())

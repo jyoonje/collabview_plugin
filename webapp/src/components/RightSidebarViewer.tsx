@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React from 'react';
+import React, {useEffect} from 'react';
 import {useSelector} from 'react-redux';
 
 import type {GlobalState} from '@mattermost/types/store';
@@ -13,9 +13,25 @@ export default function RightSidebarViewer() {
     );
     console.log('[RightSidebarViewer] Loaded URL:', finalURL);
 
-    if (!finalURL) {
-        return <div>{'로드할 뷰어 URL이 없습니다.'}</div>;
-    }
+    useEffect(() => {
+        const headerEl = document.querySelector('.sidebar--right__header .pull-right');
+        let button = document.querySelector('#my-collabview-popup-button') as HTMLButtonElement | null;
+
+        if (!button && headerEl) {
+            button = document.createElement('button');
+            button.id = 'my-collabview-popup-button';
+            button.textContent = 'Pop Out';
+            button.className = 'btn btn-secondary btn-sm';
+            button.style.marginRight = '8px';
+            headerEl.prepend(button);
+        }
+
+        if (button) {
+            button.onclick = () => {
+                window.open(finalURL, '_blank', 'width=1200,height=800');
+            };
+        }
+    }, [finalURL]);
 
     return (
         <iframe

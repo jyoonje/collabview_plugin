@@ -102,7 +102,6 @@ export default class Plugin {
                             user_name: currentUser.username,
                         });
 
-                        // ✅ ESLint 포맷 유지
                         fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`).then((res) => res.json()).then(({finalURL}) => {
                             store.dispatch(openRHSWithViewer(finalURL, props.fileInfo.id));
                         }).catch((error) => {

@@ -10,14 +10,15 @@ import (
 )
 
 type Config struct {
-	CollabviewRoot     string `json:"COLLABVIEW_PUBLIC_ROOT"`
-	PythonPath         string `json:"PYTHON_PATH"`
-	PythonDirPath      string `json:"PYTHON_DIR_PATH"`
-	MattermostDataRoot string `json:"MATTERMOST_DATA_ROOT"`
-	MattermostOutput   string `json:"MATTERMOST_OUTPUT_ROOT"`
-	CollabviewURL      string `json:"COLLABVIEW_PUBLIC_URL"`
-	FileOutputPath     string `json:"FILE_CONVERT_OUTPUT_PATH"`
-	DisposableKey      string `json:"DISPOSABLE_KEY"`
+	CollabviewRoot      string `json:"COLLABVIEW_PUBLIC_ROOT"`
+	PythonPath          string `json:"PYTHON_PATH"`
+	PythonDirPath       string `json:"PYTHON_DIR_PATH"`
+	MattermostDataRoot  string `json:"MATTERMOST_DATA_ROOT"`
+	MattermostOutput    string `json:"MATTERMOST_OUTPUT_ROOT"`
+	CollabviewURL       string `json:"COLLABVIEW_PUBLIC_URL"`
+	FileOutputPath      string `json:"FILE_CONVERT_OUTPUT_PATH"`
+	DisposableKey       string `json:"DISPOSABLE_KEY"`
+	SearchablePdfIpport string `json:"SEARCHABLE_PDF_IP_PORT"`
 }
 
 var (
@@ -71,10 +72,7 @@ func GetFinalOutputPath(fileID, filename string) string {
 	}
 	esobName := changeExtensionToEsob(filename)
 
-	return filepath.Join(cfg.FileOutputPath, fileID, esobName) // <-- fileID 추가
-	// ex: destFile과 파일 사이 디렉토리 생성 후, 디렉토리 명을 fileId 값으로
-	// 업로드하여 변환 직전에 fileId로 이미 변환되었는지 예외처리
-	// plugin_config.json 파일 수정
+	return filepath.Join(cfg.FileOutputPath, fileID, esobName)
 }
 
 func GetRelativeFilePath(fileID, filename string) string {

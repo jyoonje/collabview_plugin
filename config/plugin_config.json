@@ -7,5 +7,6 @@
   "REQUEST_VIEWER_URL": "http://localhost:3508/cv_post",
   "FILE_CONVERT_OUTPUT_PATH": "/mnt/c/Users/nobut/esob/TG/collabview/public/OUT/destfile",
   "DISPOSABLE_KEY": "uZfkawrfuxiRrZzWJ",
-  "PYTHON_DIR_PATH": "/mnt/c/Users/nobut/esob/mattermost_plugin/collabview_plugin/python"
+  "PYTHON_DIR_PATH": "/mnt/c/Users/nobut/esob/mattermost_plugin/collabview_plugin/python",
+  "SEARCHABLE_PDF_IP_PORT": "175.117.129.101:38180"
 }

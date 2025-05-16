@@ -3,7 +3,7 @@
 
 import {CV_SUPPORTED_FILE_EXTENSIONS} from '@/constants/filePreview';
 import {closeRightHandSide} from '@/utils/rhsActions';
-import {showToast} from '@/utils/toast';
+import {showUnsupportedFileToast} from '@/utils/toast/unsupportedFileToast';
 
 export function registerFileClickHandler(store: any) {
     document.addEventListener('click', (e) => {
@@ -32,7 +32,7 @@ export function registerFileClickHandler(store: any) {
                 modal.removeAttribute('aria-hidden');
             }
 
-            showToast('Collabview 변환이 지원되지 않는 확장자의 파일입니다');
+            showUnsupportedFileToast('Collabview 변환이 지원되지 않는 확장자의 파일입니다');
         }, 50);
     }, true);
 }

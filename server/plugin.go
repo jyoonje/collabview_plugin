@@ -51,6 +51,7 @@ func (p *Plugin) OnActivate() error {
 	_ = os.Setenv("PYTHON_PATH", p.cfg.PythonPath)
 	_ = os.Setenv("PYTHON_DIR_PATH", p.cfg.PythonDirPath)
 	_ = os.Setenv("MATTERMOST_DATA_ROOT", p.cfg.MattermostDataRoot)
+	_ = os.Setenv("SEARCHABLE_PDF_IP_PORT", p.cfg.SearchablePdfIpport)
 
 	job, err := cluster.Schedule(
 		p.MattermostPlugin.API,
@@ -106,53 +107,104 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 
 	go func(post *model.Post) {
 		for _, fileID := range post.FileIds {
-			fileInfo, appErr := p.API.GetFileInfo(fileID)
-			if appErr != nil {
-				p.API.LogError("파일 정보 조회 실패", "fileID", fileID, "error", appErr.Error())
-				continue
-			}
-
-			p.API.LogInfo("첨부된 파일 정보", "fileID", fileInfo.Id, "이름", fileInfo.Name, "저장 위치", fileInfo.Path)
-
-			sourceFile := config.GetConvertedFilePath(fileInfo.Id, fileInfo.Name)
-			destFile := config.GetFinalOutputPath(fileInfo.Id, fileInfo.Name)
-			destDir := filepath.Dir(destFile)
-
-			if _, err := os.Stat(destFile); err == nil {
-				p.API.LogInfo("이미 변환된 파일이 존재하므로 변환을 건너뜁니다.", "fileID", fileInfo.Id, "path", destFile)
-				continue
-			}
-
-			filePath := filepath.Join(p.cfg.MattermostDataRoot, fileInfo.Path)
-
-			if err := fileconverter.ConvertToEsob(filePath, fileInfo.Id); err != nil {
-				p.API.LogError("파일 변환 실패", "fileID", fileID, "error", err.Error())
-				continue
-			}
-
-			p.API.LogInfo("파일 변환 성공 및 저장 완료", "fileID", fileID)
-
-			// 이 시점에 Searchable PDF 호출
-
-			if err := config.EnsureDir(destDir); err != nil {
-				p.API.LogError("변환 파일 대상 디렉토리 생성 실패", "path", destDir, "error", err.Error())
-				return
-			}
-
-			if err := copyFile(sourceFile, destFile); err != nil {
-				p.API.LogError(".esob 파일 복사 실패", "from", sourceFile, "to", destFile, "error", err.Error())
-				return
-			}
-
-			p.API.LogInfo(".esob 파일 복사 성공", "from", sourceFile, "to", destFile)
-
-			if err := os.Remove(sourceFile); err != nil {
-				p.API.LogError("원본 .esob 파일 삭제 실패", "path", sourceFile, "error", err.Error())
-			} else {
-				p.API.LogInfo("원본 .esob 파일 삭제 완료", "path", sourceFile)
-			}
+			p.processFile(post, fileID)
 		}
 	}(post)
+}
+
+func (p *Plugin) processFile(post *model.Post, fileID string) {
+	fileInfo, appErr := p.API.GetFileInfo(fileID)
+	if appErr != nil {
+		p.API.LogError("파일 정보 조회 실패", "fileID", fileID, "error", appErr.Error())
+		return
+	}
+
+	p.API.LogInfo("첨부된 파일 정보", "fileID", fileInfo.Id, "이름", fileInfo.Name, "저장 위치", fileInfo.Path)
+
+	sourceFile := config.GetConvertedFilePath(fileInfo.Id, fileInfo.Name)
+	destFile := config.GetFinalOutputPath(fileInfo.Id, fileInfo.Name)
+
+	if _, err := os.Stat(destFile); err == nil {
+		p.API.LogInfo("이미 변환된 파일이 존재하므로 건너뜁니다.", "fileID", fileInfo.Id, "path", destFile)
+		return
+	}
+
+	filePath := filepath.Join(p.cfg.MattermostDataRoot, fileInfo.Path)
+	if err := fileconverter.ConvertToEsob(filePath, fileInfo.Id); err != nil {
+		p.API.LogError("파일 변환 실패", "fileID", fileID, "error", err.Error())
+		return
+	}
+
+	p.API.LogInfo("파일 변환 성공 및 저장 완료", "fileID", fileID)
+
+	convertedEsobFile := sourceFile
+	convertedPdfFile := strings.TrimSuffix(convertedEsobFile, ".esob") + ".pdf"
+
+	p.handleSearchablePDF(post, convertedEsobFile, convertedPdfFile)
+	p.finalizeFile(convertedEsobFile, destFile)
+}
+
+func (p *Plugin) handleSearchablePDF(post *model.Post, convertedEsobFile, convertedPdfFile string) {
+	if err := copyFile(convertedEsobFile, convertedPdfFile); err != nil {
+		p.API.LogError(".esob 파일 복사 실패", "from", convertedEsobFile, "to", convertedPdfFile, "error", err.Error())
+		return
+	}
+
+	p.API.LogInfo("Sending websocket event: searchable_pdf_converting", "userID", post.UserId)
+	p.sendWebSocketEvent(post.UserId, "searchable_pdf_converting")
+
+	if err := fileconverter.SearchablePDF(convertedPdfFile, filepath.Base(convertedPdfFile)); err != nil {
+		p.API.LogError("Searchable PDF 변환 실패", "error", err.Error())
+		p.sendWebSocketEvent(post.UserId, "searchable_pdf_failed")
+		p.safeRemoveFile(convertedPdfFile)
+		return
+	}
+
+	if isFileEmpty(convertedPdfFile) {
+		p.API.LogError("Searchable PDF 변환 실패: 파일 크기 0바이트", "path", convertedPdfFile)
+		p.safeRemoveFile(convertedPdfFile)
+		return
+	}
+
+	p.API.LogInfo("Searchable PDF 변환 성공", "path", convertedPdfFile)
+
+	if err := os.Rename(convertedPdfFile, convertedEsobFile); err != nil {
+		p.API.LogError(".pdf -> .esob 덮어쓰기 실패", "from", convertedPdfFile, "to", convertedEsobFile, "error", err.Error())
+	} else {
+		p.API.LogInfo(".pdf -> .esob 덮어쓰기 성공", "from", convertedPdfFile, "to", convertedEsobFile)
+	}
+}
+
+func (p *Plugin) finalizeFile(sourceFile, destFile string) {
+	if err := config.EnsureDir(filepath.Dir(destFile)); err != nil {
+		p.API.LogError("대상 디렉토리 생성 실패", "path", filepath.Dir(destFile), "error", err.Error())
+		return
+	}
+
+	if err := copyFile(sourceFile, destFile); err != nil {
+		p.API.LogError(".esob 파일 복사 실패", "from", sourceFile, "to", destFile, "error", err.Error())
+		return
+	}
+
+	p.API.LogInfo(".esob 파일 복사 성공", "from", sourceFile, "to", destFile)
+	p.safeRemoveFile(sourceFile)
+}
+
+func (p *Plugin) safeRemoveFile(filePath string) {
+	if err := os.Remove(filePath); err != nil {
+		p.API.LogError("파일 삭제 실패", "path", filePath, "error", err.Error())
+	} else {
+		p.API.LogInfo("파일 삭제 성공", "path", filePath)
+	}
+}
+
+func (p *Plugin) sendWebSocketEvent(userID string, event string) {
+	p.API.PublishWebSocketEvent(event, map[string]interface{}{}, &model.WebsocketBroadcast{UserId: userID})
+}
+
+func isFileEmpty(filePath string) bool {
+	info, err := os.Stat(filePath)
+	return err != nil || info.Size() == 0
 }
 
 func (p *Plugin) FetchFileRedirect(w http.ResponseWriter, r *http.Request) {
@@ -238,12 +290,10 @@ func (p *Plugin) GetMarkupOptionsFromSystemConsole() map[string]bool {
 		return options
 	}
 
-	p.API.LogInfo("############################################################")
 	p.API.LogInfo("[DEBUG] Dumping all plugin settings from System Console")
 	for k, v := range raw {
 		p.API.LogInfo("[DEBUG] Plugin setting", "key", k, "value", fmt.Sprintf("%v", v), "type", fmt.Sprintf("%T", v))
 	}
-	p.API.LogInfo("############################################################")
 
 	getBool := func(key string) bool {
 		val, ok := raw[key]

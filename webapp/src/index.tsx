@@ -25,6 +25,7 @@ import {
     setLastHandledFileId,
     updateLastClickedFileId,
 } from '@/utils/file';
+import {searchablePdfToast} from '@/utils/toast/searchablePdfToast';
 
 /* eslint-disable no-console */
 export default class Plugin {
@@ -123,9 +124,29 @@ export default class Plugin {
 
         registerMessageListener(store, rhs);
         registerFileClickHandler(store);
+
+        const extendedRegistry = registry as PluginRegistry & {
+            registerWebSocketEventHandler: (event: string, handler: (msg: any) => void) => void;
+        };
+
+        this.registerWebSocketEventHandlers(extendedRegistry);
     }
 
     public uninitialize() {}
+
+    private registerWebSocketEventHandlers(registry: PluginRegistry & { registerWebSocketEventHandler: (event: string, handler: (msg: any) => void) => void }) {
+        const handlers: Record<string, string> = {
+            'custom_kr.esob.collabview-plugin_searchable_pdf_converting': 'Searchable PDF 변환을 시작합니다. 최대 1분이 소요될 수 있습니다.',
+            'custom_kr.esob.collabview-plugin_searchable_pdf_failed': 'Searchable PDF 변환에 실패했습니다.',
+        };
+
+        for (const [event, message] of Object.entries(handlers)) {
+            registry.registerWebSocketEventHandler(event, () => {
+                console.log(`${event} 이벤트 수신`);
+                searchablePdfToast(message);
+            });
+        }
+    }
 }
 
 if (window.registerPlugin) {

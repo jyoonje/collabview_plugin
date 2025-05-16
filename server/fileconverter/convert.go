@@ -1,10 +1,16 @@
 package fileconverter
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 )
 
 // ConvertToEsob converts the input file using convert.py script and stores it based on the outputHash.
@@ -40,4 +46,86 @@ func ConvertToEsob(inputPath string, outputHash string) error {
 
 	fmt.Printf("파일 변환 완료\n 출력:\n%s\n", string(output))
 	return nil
+}
+
+func SearchablePDF(filePath, fileName string) error {
+	imagesecureIpport := os.Getenv("SEARCHABLE_PDF_IP_PORT")
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("파일 열기 실패: %w", err)
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("files", filepath.Base(filePath))
+	if err != nil {
+		return fmt.Errorf("멀티파트 생성 실패: %w", err)
+	}
+	if _, err := io.Copy(part, file); err != nil {
+		return fmt.Errorf("파일 복사 실패: %w", err)
+	}
+	writer.Close()
+
+	req, err := http.NewRequest("POST", "http://"+imagesecureIpport+"/uploadimages/ack/searchable", body)
+	if err != nil {
+		return fmt.Errorf("API 요청 생성 실패: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("API 요청 실패: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var resData map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&resData); err != nil {
+		return fmt.Errorf("응답 파싱 실패: %w", err)
+	}
+
+	if resData["result"] != "ok" {
+		return fmt.Errorf("API 호출 실패: %v", resData)
+	}
+
+	taskID := resData["files"].(map[string]interface{})[fileName].(string)
+	fmt.Printf("Searchable PDF 요청 성공. Task ID: %s\n", taskID)
+
+	const maxAttempts = 20
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		time.Sleep(3 * time.Second)
+
+		resultURL := fmt.Sprintf("http://%s/taskresult/searchable/%s", imagesecureIpport, taskID)
+		resultResp, err := http.Get(resultURL)
+		if err != nil {
+			return fmt.Errorf("결과 요청 실패: %w", err)
+		}
+		defer resultResp.Body.Close()
+
+		var resultData map[string]interface{}
+		if err := json.NewDecoder(resultResp.Body).Decode(&resultData); err == nil {
+			if resultData["result"] == "waiting" {
+				fmt.Printf("처리 대기 중... (%d/%d)\n", attempt, maxAttempts)
+				continue
+			}
+		}
+
+		// 파일 덮어쓰기
+		outFile, err := os.Create(filePath)
+		if err != nil {
+			return fmt.Errorf("파일 생성 실패: %w", err)
+		}
+		defer outFile.Close()
+
+		if _, err := io.Copy(outFile, resultResp.Body); err != nil {
+			return fmt.Errorf("파일 쓰기 실패: %w", err)
+		}
+
+		fmt.Printf("검색 가능한 PDF 저장 완료: %s\n", filePath)
+		return nil
+	}
+
+	return fmt.Errorf("최대 %d회 시도했지만 완료되지 않았습니다", maxAttempts)
 }

@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-export function showToast(message: string, duration = 3000) {
+export function showUnsupportedFileToast(message: string, duration = 3000) {
     const modal = document.querySelector('.file-preview-modal');
     if (!(modal instanceof HTMLElement) || modal.style.display === 'none') {
         return; // 모달이 없거나 숨겨져 있으면 아무것도 하지 않음

@@ -20,7 +20,7 @@ export default function RightSidebarViewer() {
         if (!button && headerEl) {
             button = document.createElement('button');
             button.id = 'my-collabview-popup-button';
-            button.textContent = 'Pop Out';
+            button.textContent = 'Popup';
             button.className = 'btn btn-secondary btn-sm';
             button.style.marginRight = '8px';
             headerEl.prepend(button);

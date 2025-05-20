@@ -136,8 +136,8 @@ export default class Plugin {
 
     private registerWebSocketEventHandlers(registry: PluginRegistry & { registerWebSocketEventHandler: (event: string, handler: (msg: any) => void) => void }) {
         const handlers: Record<string, string> = {
-            'custom_kr.esob.collabview-plugin_searchable_pdf_converting': 'Searchable PDF 변환을 시작합니다. 최대 1분이 소요될 수 있습니다.',
-            'custom_kr.esob.collabview-plugin_searchable_pdf_failed': 'Searchable PDF 변환에 실패했습니다.',
+            'custom_kr.esob.collabview-plugin_searchable_pdf_converting': 'Searchable PDF 적용을 시작합니다. 최대 1분이 소요될 수 있습니다.',
+            'custom_kr.esob.collabview-plugin_searchable_pdf_failed': 'Searchable PDF 적용에 실패했습니다.',
         };
 
         for (const [event, message] of Object.entries(handlers)) {

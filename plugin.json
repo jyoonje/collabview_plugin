@@ -42,6 +42,13 @@
       }
     ,
       {
+        "key": "view_check_button",
+        "display_name": "Enable View Check Button",
+        "type": "bool",
+        "default": true
+      }
+    ,
+      {
         "key": "view_speech_bubble_button",
         "display_name": "Enable View Speech-bubble Button",
         "type": "bool",

@@ -32,7 +32,7 @@ export function registerFileClickHandler(store: any) {
                 modal.removeAttribute('aria-hidden');
             }
 
-            showUnsupportedFileToast('Collabview 변환이 지원되지 않는 확장자의 파일입니다');
+            showUnsupportedFileToast('뷰어가 지원되지 않는 파일 형식입니다.');
         }, 50);
     }, true);
 }

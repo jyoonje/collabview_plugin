@@ -17,7 +17,6 @@ export function registerMessageListener(
         try {
             if (event.data?.type === 'closeRHSPlugin') {
                 if (rhs.hideRHSPlugin) {
-                    console.log('[Plugin] Hide RHS, event:', event);
                     rhs.hideRHSPlugin(store.dispatch, store.getState);
                 } else {
                     store.dispatch(toggleRHS(''));
@@ -29,11 +28,6 @@ export function registerMessageListener(
 
                 const currentFileId = state.viewer?.fileId || '';
                 const newFileId = getLastClickedFileId;
-
-                console.log('currentPluggableId:', currentPluggableId);
-                console.log('rhs.id:', rhs.id);
-                console.log('currentFileId:', currentFileId);
-                console.log('newFileId:', newFileId);
 
                 if (currentPluggableId === rhs.id && currentFileId === newFileId) {
                     // 이미 열려 있고 같은 파일이면 토글(닫기)

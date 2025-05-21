@@ -11,7 +11,15 @@ export default function RightSidebarViewer() {
     const finalURL = useSelector((state: GlobalState) =>
         (state as any)['plugins-kr.esob.collabview-plugin']?.viewer?.finalURL,
     );
-    console.log('[RightSidebarViewer] Loaded URL:', finalURL);
+    console.log('Loaded URL:', finalURL);
+
+    const modal = document.querySelector('div.file-preview-modal.modal');
+
+    if (modal instanceof HTMLElement) {
+        modal.style.display = 'none';
+    } else {
+        console.warn('file-preview-modal not found.');
+    }
 
     useEffect(() => {
         const headerEl = document.querySelector('.sidebar--right__header .pull-right');

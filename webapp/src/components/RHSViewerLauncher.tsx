@@ -63,10 +63,7 @@ export default function RHSViewerLauncher({fileInfo}: RHSViewerLauncher) {
     const dispatch = useAppDispatch();
     const currentUser = useSelector(getCurrentUser);
 
-    console.log('currentUsercurrentUser:', currentUser);
-
     useEffect(() => {
-        console.log('useEffectuseEffect:', useEffect);
         const ext = getFileExtension(fileInfo);
 
         // SUPPORTED 확장자인 경우만 기본 프리뷰 제거 + RHS 열기
@@ -74,13 +71,13 @@ export default function RHSViewerLauncher({fileInfo}: RHSViewerLauncher) {
             requestAnimationFrame(() => {
                 setTimeout(() => {
                     const modal = document.querySelector('.file-preview-modal');
-                    console.log('[Collabview] file-preview-modal exists?', Boolean(modal));
+                    console.log('file-preview-modal exists?', Boolean(modal));
 
                     if (modal instanceof HTMLElement) {
                         modal.style.display = 'none';
-                        console.log('[Collabview] file-preview-modal hidden.');
+                        console.log('file-preview-modal hidden.');
                     } else {
-                        console.warn('[Collabview] file-preview-modal not found.');
+                        console.warn('file-preview-modal not found.');
                     }
                 }, 0);
             });

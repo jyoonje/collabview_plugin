@@ -51,31 +51,45 @@ export default class Plugin {
         let lastExecutionTime = 0;
         const EXECUTION_GAP_MS = 400;
 
+        let lastUserClickedFileName = '';
+
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target as HTMLElement;
+            const nameSpan = target.closest('.post-image__column')?.querySelector('.post-image__name') as HTMLElement;
+            if (nameSpan) {
+                lastUserClickedFileName = nameSpan.textContent?.trim() || '';
+            }
+        });
+
         registry.registerFilePreviewComponent(
             (fileInfo: FileInfo) => {
                 const ext = getFileExtension(fileInfo);
                 return CV_SUPPORTED_FILE_EXTENSIONS.has(ext);
             },
             (props) => {
+                const currentPath = window.location.pathname;
+                if (!currentPath.startsWith('/esobsoft')) {
+                    this.hideFilePreviewModal();
+                }
+
                 const now = Date.now();
                 if (now - lastExecutionTime < EXECUTION_GAP_MS) {
-                    console.log('[Collabview] Throttled duplicate call ignored.');
+                    console.log('Throttled duplicate call ignored.');
                     return null;
                 }
                 lastExecutionTime = now;
+
+                if (this.skipExecuteRHSComponent(props.fileInfo, lastUserClickedFileName)) {
+                    return null;
+                }
+                lastUserClickedFileName = '';
 
                 const ext = getFileExtension(props.fileInfo);
                 const previousFileId = getLastClickedFileId();
                 const lastHandledFileId = getLastHandledFileId();
 
-                console.log('[Collabview] Checking RHS toggle condition:', {
-                    previousFileId,
-                    currentFileId: props.fileInfo.id,
-                    lastHandledFileId,
-                });
-
                 if (previousFileId && previousFileId === props.fileInfo.id) {
-                    console.log('[Collabview] Same file clicked again, toggling RHS off.');
+                    console.log('Same file clicked again, toggling RHS off.');
                     rhs.toggleRHSPlugin?.(store.dispatch, store.getState);
                     updateLastClickedFileId('');
                     setLastHandledFileId('');
@@ -83,7 +97,7 @@ export default class Plugin {
                 }
 
                 if (lastHandledFileId === props.fileInfo.id) {
-                    console.log('[Collabview] Skipping duplicate processing for file:', props.fileInfo.id);
+                    console.log('Skipping duplicate processing for file:', props.fileInfo.id);
                     setLastHandledFileId('');
                     return null;
                 }
@@ -106,7 +120,7 @@ export default class Plugin {
                         fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`).then((res) => res.json()).then(({finalURL}) => {
                             store.dispatch(openRHSWithViewer(finalURL, props.fileInfo.id));
                         }).catch((error) => {
-                            console.error('[Collabview] Failed to load viewer URL:', error);
+                            console.error('Failed to load viewer URL:', error);
                         });
                     }
                 }
@@ -142,9 +156,27 @@ export default class Plugin {
 
         for (const [event, message] of Object.entries(handlers)) {
             registry.registerWebSocketEventHandler(event, () => {
-                console.log(`${event} 이벤트 수신`);
                 searchablePdfToast(message);
             });
+        }
+    }
+
+    private skipExecuteRHSComponent(props: FileInfo, lastFileName: string): boolean {
+        if (props.name !== lastFileName) {
+            console.log('Skipping: Not last clicked file (name mismatch)');
+            this.hideFilePreviewModal();
+            return true;
+        }
+        return false;
+    }
+
+    private hideFilePreviewModal(): void {
+        const modal = document.querySelector('div.file-preview-modal.modal');
+        if (modal instanceof HTMLElement) {
+            modal.style.display = 'none';
+            console.log('Default modal hidden.');
+        } else {
+            console.warn('Modal not found.');
         }
     }
 }

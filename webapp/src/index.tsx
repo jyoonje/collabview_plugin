@@ -8,7 +8,7 @@ import type {ThunkDispatch} from 'redux-thunk';
 
 import type {GlobalState} from '@mattermost/types/store';
 
-import {openRHSWithViewer} from './actions/viewer';
+import {openRHSWithViewer, setConvertFailed, setConverting, setConvertSuccess} from './actions/viewer';
 import RHSViewerLauncher from './components/RHSViewerLauncher';
 import RightSidebarViewer from './components/RightSidebarViewer';
 import manifest from './manifest';
@@ -51,7 +51,7 @@ export default class Plugin {
         this.registerFilePreviewComponent(registry, store, rhs);
         registerMessageListener(store, rhs);
         registerFileClickHandler(store);
-        this.registerWebSocketEventHandlers(extendedRegistry);
+        this.registerWebSocketEventHandlers(store, extendedRegistry);
     }
 
     public uninitialize() {}
@@ -194,20 +194,22 @@ export default class Plugin {
     }
 
     private registerWebSocketEventHandlers(
+        store: Store<GlobalState, AnyAction> & { dispatch: any; getState: any },
         registry: PluginRegistry & {
             registerWebSocketEventHandler: (event: string, handler: (msg: any) => void) => void;
         },
     ) {
-        const handlers: Record<string, string> = {
-            'custom_kr.esob.collabview-plugin_searchable_pdf_converting': 'Searchable PDF 적용을 시작합니다. 최대 1분이 소요될 수 있습니다.',
-            'custom_kr.esob.collabview-plugin_searchable_pdf_failed': 'Searchable PDF 적용에 실패했습니다.',
-        };
-
-        for (const [event, message] of Object.entries(handlers)) {
-            registry.registerWebSocketEventHandler(event, () => {
-                searchablePdfToast(message);
-            });
-        }
+        registry.registerWebSocketEventHandler('custom_kr.esob.collabview-plugin_searchable_pdf_converting', () => {
+            store.dispatch(setConverting());
+            searchablePdfToast('Searchable PDF 적용을 시작합니다. 최대 1분이 소요될 수 있습니다.');
+        });
+        registry.registerWebSocketEventHandler('custom_kr.esob.collabview-plugin_searchable_pdf_success', () => {
+            store.dispatch(setConvertSuccess());
+        });
+        registry.registerWebSocketEventHandler('custom_kr.esob.collabview-plugin_searchable_pdf_failed', () => {
+            store.dispatch(setConvertFailed());
+            searchablePdfToast('Searchable PDF 적용에 실패했습니다.');
+        });
     }
 
     private registerClickTracker(): void {

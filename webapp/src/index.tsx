@@ -219,7 +219,6 @@ export default class Plugin {
                 this.lastUserClickedFileName = nameSpan.textContent?.trim() || '';
             }
 
-            // 👇 img 태그일 경우 alt나 title 속성에서 추출 시도
             if (target.tagName === 'IMG') {
                 const fallbackName =
                     target.getAttribute('aria-label') ||

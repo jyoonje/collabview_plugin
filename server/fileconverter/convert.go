@@ -68,7 +68,7 @@ func SearchablePDF(filePath, fileName string) error {
 	}
 	writer.Close()
 
-	req, err := http.NewRequest("POST", "http://"+imagesecureIpport+"/uploadimages/ack/searchable", body)
+	req, err := http.NewRequest("POST", "http://"+imagesecureIpport+"/api/images/async/searchable", body)
 	if err != nil {
 		return fmt.Errorf("API 요청 생성 실패: %w", err)
 	}
@@ -93,19 +93,26 @@ func SearchablePDF(filePath, fileName string) error {
 	taskID := resData["files"].(map[string]interface{})[fileName].(string)
 	fmt.Printf("Searchable PDF 요청 성공. Task ID: %s\n", taskID)
 
-	const maxAttempts = 20
+	const maxAttempts = 200
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		time.Sleep(3 * time.Second)
 
-		resultURL := fmt.Sprintf("http://%s/taskresult/searchable/%s", imagesecureIpport, taskID)
+		resultURL := fmt.Sprintf("http://%s/api/images/results/searchable/%s", imagesecureIpport, taskID)
+
 		resultResp, err := http.Get(resultURL)
 		if err != nil {
 			return fmt.Errorf("결과 요청 실패: %w", err)
 		}
 		defer resultResp.Body.Close()
 
+		bodyBytes, err := io.ReadAll(resultResp.Body)
+		if err != nil {
+			return fmt.Errorf("응답 body 읽기 실패: %w", err)
+		}
+
+		// JSON 파싱 시도
 		var resultData map[string]interface{}
-		if err := json.NewDecoder(resultResp.Body).Decode(&resultData); err == nil {
+		if err := json.Unmarshal(bodyBytes, &resultData); err == nil {
 			if resultData["result"] == "waiting" {
 				fmt.Printf("처리 대기 중... (%d/%d)\n", attempt, maxAttempts)
 				continue
@@ -119,11 +126,12 @@ func SearchablePDF(filePath, fileName string) error {
 		}
 		defer outFile.Close()
 
-		if _, err := io.Copy(outFile, resultResp.Body); err != nil {
+		if _, err := outFile.Write(bodyBytes); err != nil {
 			return fmt.Errorf("파일 쓰기 실패: %w", err)
 		}
 
-		fmt.Printf("검색 가능한 PDF 저장 완료: %s\n", filePath)
+		fmt.Printf("SearchablePDF 저장 완료: %s\n", filePath)
+
 		return nil
 	}
 

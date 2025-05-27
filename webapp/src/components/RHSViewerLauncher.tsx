@@ -117,7 +117,7 @@ export default function RHSViewerLauncher({fileInfo}: RHSViewerLauncher) {
 
                     dispatch(openRHSWithViewer(json.finalURL, fileInfo.id));
                 } catch (err) {
-                    console.error('[MyFileAttachmentOverride] viewer setup error:', err);
+                    console.error('viewer setup error:', err);
                 }
             };
 

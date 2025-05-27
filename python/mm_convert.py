@@ -97,7 +97,7 @@ def resize_if_needed(input_path, output_path):
             return False
 
 def resize_image(input_path):
-    output_path = input_path.replace(".", "_resized.")
+    output_path = input_path.replace(".", ".")
     try:
         if resize_if_needed(input_path, output_path):
             return output_path
@@ -125,7 +125,13 @@ def convert_to_pdf(input_path, fileHash, use_gotenberg=False):
     intermediate_output_path = os.path.join(output_directory, f"{encoded_filename}.pdf")
 
     try:
-        if extension.lower() in ['.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx']:
+        if extension.lower() in ['.jpg', '.jpeg', '.png', '.gif']:
+            # 리사이징 후 변환 수행
+            resized_image_path = resize_image(encoded_input_path)
+            image = Image.open(resized_image_path)
+            image.convert('RGB').save(intermediate_output_path, format='PDF')
+            logging.info(f"Saved image as PDF to {intermediate_output_path}")
+        elif extension.lower() in ['.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx']:
             if use_gotenberg:
                 # pptx면 prep_zh.py 실행
                 if extension.lower() == '.pptx':

@@ -141,7 +141,7 @@ func (p *Plugin) processFile(post *model.Post, fileID string) {
 	convertedPdfFile := strings.TrimSuffix(convertedEsobFile, ".esob") + ".pdf"
 
 	p.handleSearchablePDF(post, convertedEsobFile, convertedPdfFile)
-	p.finalizeFile(convertedEsobFile, destFile)
+	p.finalizeFile(convertedPdfFile, destFile)
 }
 
 func (p *Plugin) handleSearchablePDF(post *model.Post, convertedEsobFile, convertedPdfFile string) {
@@ -149,8 +149,6 @@ func (p *Plugin) handleSearchablePDF(post *model.Post, convertedEsobFile, conver
 		p.API.LogError(".esob 파일 복사 실패", "from", convertedEsobFile, "to", convertedPdfFile, "error", err.Error())
 		return
 	}
-
-	p.API.LogInfo("Sending websocket event: searchable_pdf_converting", "userID", post.UserId)
 	p.sendWebSocketEvent(post.UserId, "searchable_pdf_converting")
 
 	if err := fileconverter.SearchablePDF(convertedPdfFile, filepath.Base(convertedPdfFile)); err != nil {
@@ -167,12 +165,6 @@ func (p *Plugin) handleSearchablePDF(post *model.Post, convertedEsobFile, conver
 	}
 
 	p.API.LogInfo("Searchable PDF 변환 성공", "path", convertedPdfFile)
-
-	if err := os.Rename(convertedPdfFile, convertedEsobFile); err != nil {
-		p.API.LogError(".pdf -> .esob 덮어쓰기 실패", "from", convertedPdfFile, "to", convertedEsobFile, "error", err.Error())
-	} else {
-		p.API.LogInfo(".pdf -> .esob 덮어쓰기 성공", "from", convertedPdfFile, "to", convertedEsobFile)
-	}
 }
 
 func (p *Plugin) finalizeFile(sourceFile, destFile string) {
@@ -270,6 +262,7 @@ func (p *Plugin) GetMarkupOptionsFromSystemConsole() map[string]bool {
 		"view_markup_button":               false,
 		"view_markup_color_toolbar":        false,
 		"view_export_pdf_button":           false,
+		"view_check_button":                false,
 		"view_speech_bubble_button":        false,
 		"view_speech_bubble_color_toolbar": false,
 		"view_first_markup":                false,
@@ -313,6 +306,7 @@ func (p *Plugin) GetMarkupOptionsFromSystemConsole() map[string]bool {
 	options["view_markup_button"] = getBool("view_markup_button")
 	options["view_markup_color_toolbar"] = getBool("view_markup_color_toolbar")
 	options["view_export_pdf_button"] = getBool("view_export_pdf_button")
+	options["view_check_button"] = getBool("view_check_button")
 	options["view_speech_bubble_button"] = getBool("view_speech_bubble_button")
 	options["view_speech_bubble_color_toolbar"] = getBool("view_speech_bubble_color_toolbar")
 	options["view_first_markup"] = getBool("view_first_markup")

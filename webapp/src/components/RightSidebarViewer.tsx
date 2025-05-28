@@ -8,13 +8,15 @@ import type {GlobalState} from '@mattermost/types/store';
 
 /* eslint-disable no-console */
 export default function RightSidebarViewer() {
-    const finalURL = useSelector((state: GlobalState) =>
-        (state as any)['plugins-kr.esob.collabview-plugin']?.viewer?.finalURL,
+    const viewerState = useSelector((state: GlobalState) =>
+        (state as any)['plugins-kr.esob.collabview-plugin']?.viewer,
     );
-    console.log('Loaded URL:', finalURL);
+
+    const finalURL = viewerState?.finalURL || '';
+    const converting = viewerState?.converting || false;
+    const fileId = viewerState?.fileId || '';
 
     const modal = document.querySelector('div.file-preview-modal.modal');
-
     if (modal instanceof HTMLElement) {
         modal.style.display = 'none';
     } else {
@@ -41,8 +43,17 @@ export default function RightSidebarViewer() {
         }
     }, [finalURL]);
 
+    if (converting) {
+        return (
+            <div style={{height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+                <i className='fa fa-spinner fa-pulse fa-2x'/>
+            </div>
+        );
+    }
+
     return (
         <iframe
+            key={fileId}
             src={finalURL}
             width='100%'
             height='100%'

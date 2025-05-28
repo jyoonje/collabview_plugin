@@ -38,7 +38,7 @@ export function registerMessageListener(
                 }
             }
         } catch (err) {
-            console.error('[Plugin] Failed to handle message event:', err);
+            console.error('Failed to handle message event:', err);
         }
     });
 }

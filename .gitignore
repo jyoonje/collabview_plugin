@@ -12,7 +12,3 @@ server/manifest.go
 # VS Code
 .vscode
 .env
-
-# Config
-python/config.py
-config/plugin_config.json

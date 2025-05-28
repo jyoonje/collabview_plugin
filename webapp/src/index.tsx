@@ -201,14 +201,13 @@ export default class Plugin {
     ) {
         registry.registerWebSocketEventHandler('custom_kr.esob.collabview-plugin_searchable_pdf_converting', () => {
             store.dispatch(setConverting());
-            searchablePdfToast('Searchable PDF 적용을 시작합니다. 최대 1분이 소요될 수 있습니다.');
+            searchablePdfToast('이미지에서 텍스트를 인식 중입니다. 몇 분 정도 소요될 수 있습니다.');
         });
         registry.registerWebSocketEventHandler('custom_kr.esob.collabview-plugin_searchable_pdf_success', () => {
             store.dispatch(setConvertSuccess());
         });
         registry.registerWebSocketEventHandler('custom_kr.esob.collabview-plugin_searchable_pdf_failed', () => {
             store.dispatch(setConvertFailed());
-            searchablePdfToast('Searchable PDF 적용에 실패했습니다.');
         });
     }
 

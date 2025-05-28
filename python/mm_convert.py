@@ -10,6 +10,7 @@ from PIL import Image
 from msoffice2pdf import convert
 import ghostscript
 import re
+from config import GOTENBERG_URL
 
 Image.MAX_IMAGE_PIXELS = None
 MAX_PIXELS = 100000000
@@ -32,7 +33,6 @@ logging.basicConfig(
 )
 
 SUPPORTED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.pdf', '.ps']
-GOTENBERG_URL = "http://192.168.0.244:3507/forms/libreoffice/convert"
 
 def base64_encode(filename):
     return base64.urlsafe_b64encode(filename.encode('utf-8')).decode('utf-8')

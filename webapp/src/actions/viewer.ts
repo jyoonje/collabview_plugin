@@ -8,18 +8,19 @@ export const SET_CONVERTING = 'SET_CONVERTING';
 export const SET_CONVERT_SUCCESS = 'SET_CONVERT_SUCCESS';
 export const SET_CONVERT_FAILED = 'SET_CONVERT_FAILED';
 
-export function setViewerURL(finalURL: string, fileId: string) {
+export function setViewerFields(finalURL: string, fileId: string, fileName: string) {
     return {
         type: RHS_SHOW_VIEWER,
-        payload: {finalURL, fileId},
+        payload: {finalURL, fileId, fileName},
     };
 }
 
-export function openRHSWithViewer(finalURL: string, fileId: string) {
+export function openRHSWithViewer(finalURL: string, fileId: string, fileName: string, shouldOpen: boolean) {
     return (dispatch: Dispatch) => {
-        dispatch(setViewerURL(finalURL, fileId));
-
-        window.postMessage({type: 'openRHSPlugin'}, window.origin);
+        dispatch(setViewerFields(finalURL, fileId, fileName));
+        if (shouldOpen) {
+            window.postMessage({type: 'openRHSPlugin'}, window.origin);
+        }
     };
 }
 

@@ -6,7 +6,10 @@ import {useSelector} from 'react-redux';
 
 import type {GlobalState} from '@mattermost/types/store';
 
+import {storeSessionDataOnCollabview} from './RHSViewerLauncher';
+
 /* eslint-disable no-console */
+/* eslint-disable no-alert */
 export default function RightSidebarViewer() {
     const viewerState = useSelector((state: GlobalState) =>
         (state as any)['plugins-kr.esob.collabview-plugin']?.viewer,
@@ -14,7 +17,6 @@ export default function RightSidebarViewer() {
 
     const finalURL = viewerState?.finalURL || '';
     const converting = viewerState?.converting || false;
-    const fileId = viewerState?.fileId || '';
 
     const modal = document.querySelector('div.file-preview-modal.modal');
     if (modal instanceof HTMLElement) {
@@ -53,7 +55,7 @@ export default function RightSidebarViewer() {
 
     return (
         <iframe
-            key={fileId}
+            key={finalURL}
             src={finalURL}
             width='100%'
             height='100%'
@@ -63,4 +65,40 @@ export default function RightSidebarViewer() {
             sandbox='allow-scripts allow-same-origin'
         />
     );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function fetchFinalViewerURLAndStoreSession(
+    fileInfo: { id: string; name: string },
+    currentUser: { id: string; username: string },
+    requestViewerURL: string,
+): Promise<string | null> {
+    try {
+        const queryParams = new URLSearchParams({
+            file_id: fileInfo.id,
+            user_id: currentUser.id,
+            user_name: currentUser.username,
+        });
+
+        const resFinalUrl = await fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`);
+        const {finalURL} = await resFinalUrl.json();
+
+        const resMarkups = await fetch('/plugins/kr.esob.collabview-plugin/api/v1/get-markup-options', {
+            method: 'GET',
+            credentials: 'include',
+        });
+        const markupOptions = await resMarkups.json();
+
+        const json = await storeSessionDataOnCollabview(
+            requestViewerURL,
+            fileInfo.name,
+            finalURL,
+            currentUser.username,
+            markupOptions,
+        );
+
+        return json.finalURL;
+    } catch {
+        return null;
+    }
 }

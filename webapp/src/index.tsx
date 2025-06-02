@@ -187,7 +187,7 @@ export default class Plugin {
         });
 
         fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`).then((res) => res.json()).then(({finalURL}) => {
-            store.dispatch(openRHSWithViewer(finalURL, fileInfo.id));
+            store.dispatch(openRHSWithViewer(finalURL, fileInfo.id, fileInfo.name, false));
         }).catch((error) => {
             console.error('Failed to load viewer URL:', error);
         });

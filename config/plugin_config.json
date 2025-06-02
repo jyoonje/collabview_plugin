@@ -5,6 +5,7 @@
   "MATTERMOST_OUTPUT_ROOT": "/home/yjjung/esob/mattermost/server/public/web/output",
   "COLLABVIEW_PUBLIC_URL": "http://localhost:3508",
   "REQUEST_VIEWER_URL": "http://localhost:3508/cv_post",
+  "REQUEST_VIEWER_URL_POPUP": "http://localhost:3508/cv_mm",
   "FILE_CONVERT_OUTPUT_PATH": "/mnt/c/Users/nobut/esob/TG/collabview/public/OUT/destfile",
   "DISPOSABLE_KEY": "uZfkawrfuxiRrZzWJ",
   "PYTHON_DIR_PATH": "/mnt/c/Users/nobut/esob/mattermost_plugin/collabview_plugin/python",

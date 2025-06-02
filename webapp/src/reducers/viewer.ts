@@ -6,6 +6,7 @@ import {RHS_SHOW_VIEWER, SET_CONVERT_FAILED, SET_CONVERT_SUCCESS, SET_CONVERTING
 const initialState = {
     finalURL: '',
     fileId: '',
+    fileName: '',
     converting: false,
 };
 
@@ -16,6 +17,7 @@ export default function viewer(state = initialState, action: any) {
             ...state,
             finalURL: action.payload.finalURL,
             fileId: action.payload.fileId,
+            fileName: action.payload.fileName,
         };
     case SET_CONVERTING:
         return {

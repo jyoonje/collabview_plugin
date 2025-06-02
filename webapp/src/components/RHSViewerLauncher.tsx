@@ -33,7 +33,7 @@ interface RHSViewerLauncher {
 }
 
 // Collabview 서버에 세션 데이터를 저장하는 함수
-async function storeSessionDataOnCollabview(
+export async function storeSessionDataOnCollabview(
     requestUrl: string,
     fileName: string,
     finalURL: string,
@@ -66,12 +66,10 @@ export default function RHSViewerLauncher({fileInfo}: RHSViewerLauncher) {
     useEffect(() => {
         const ext = getFileExtension(fileInfo);
 
-        // SUPPORTED 확장자인 경우만 기본 프리뷰 제거 + RHS 열기
         if (CV_SUPPORTED_FILE_EXTENSIONS.has(ext)) {
             requestAnimationFrame(() => {
                 setTimeout(() => {
                     const modal = document.querySelector('.file-preview-modal');
-                    console.log('file-preview-modal exists?', Boolean(modal));
 
                     if (modal instanceof HTMLElement) {
                         modal.style.display = 'none';
@@ -108,14 +106,13 @@ export default function RHSViewerLauncher({fileInfo}: RHSViewerLauncher) {
                     const markupOptions = await resMarkups.json();
 
                     const json = await storeSessionDataOnCollabview(
-                        pluginConfig.REQUEST_VIEWER_URL,
+                        pluginConfig.REQUEST_VIEWER_URL_POPUP,
                         fileInfo.name,
                         finalURL,
                         currentUser.username,
                         markupOptions,
                     );
-
-                    dispatch(openRHSWithViewer(json.finalURL, fileInfo.id));
+                    dispatch(openRHSWithViewer(json.finalURL, fileInfo.id, fileInfo.name, true));
                 } catch (err) {
                     console.error('viewer setup error:', err);
                 }

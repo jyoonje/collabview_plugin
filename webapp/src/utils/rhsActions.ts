@@ -6,6 +6,7 @@ import {batchActions} from 'redux-batched-actions';
 import type {PluginGlobalState} from '@/types/globalState';
 import type {RhsState} from '@/types/rhs';
 
+/* eslint-disable no-console */
 // RHS 열기/닫기 토글
 export function toggleRHS(componentId: string) {
     return (dispatch: any, getState: () => PluginGlobalState) => {
@@ -61,4 +62,19 @@ export function closeRightHandSide() {
 // 현재 RHS 상태 반환
 export function getRHSState(state: PluginGlobalState): RhsState {
     return state.views.rhs;
+}
+
+export function hideFilePreviewModal() {
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            const modal = document.querySelector('.file-preview-modal');
+
+            if (modal instanceof HTMLElement) {
+                modal.style.display = 'none';
+                console.log('file-preview-modal hidden.');
+            } else {
+                console.warn('file-preview-modal not found.');
+            }
+        }, 0);
+    });
 }

@@ -15,6 +15,7 @@ import manifest from './manifest';
 import reducer from './reducers';
 import {registerFileClickHandler} from './utils/registerFileClickHandler';
 import {registerMessageListener} from './utils/registerMessageListener';
+import {hideFilePreviewModal} from './utils/rhsActions';
 
 import {CV_SUPPORTED_FILE_EXTENSIONS} from '@/constants/filePreview';
 import type {FileInfo} from '@/types/files';
@@ -50,7 +51,7 @@ export default class Plugin {
         this.registerClickTracker();
         this.registerFilePreviewComponent(registry, store, rhs);
         registerMessageListener(store, rhs);
-        registerFileClickHandler(store);
+        registerFileClickHandler();
         this.registerWebSocketEventHandlers(store, extendedRegistry);
     }
 
@@ -81,7 +82,7 @@ export default class Plugin {
     ) {
         return registry.registerRightHandSidebarComponent(
             RightSidebarViewer,
-            'Collabview',
+            'CollabView',
         ) as {
             id: string;
             hideRHSPlugin?: (dispatch: any, getState: any) => void;
@@ -90,22 +91,12 @@ export default class Plugin {
         };
     }
 
-    private shouldSkipFilePreview(fileInfo: FileInfo): boolean {
+    private shouldSkipRenderRHS(fileInfo: FileInfo): boolean {
         if (fileInfo.name.toLowerCase() !== this.lastUserClickedFileName.toLowerCase()) {
-            this.hideFilePreviewModal();
+            hideFilePreviewModal();
             return true;
         }
         return false;
-    }
-
-    private hideFilePreviewModal(): void {
-        const modal = document.querySelector('div.file-preview-modal.modal');
-        if (modal instanceof HTMLElement) {
-            modal.style.display = 'none';
-            console.log('Default modal hidden.');
-        } else {
-            console.warn('Modal not found.');
-        }
     }
 
     private handleRHSComponent(
@@ -113,11 +104,6 @@ export default class Plugin {
         store: Store<GlobalState, AnyAction> & { dispatch: any; getState: any },
         rhs: { id: string; toggleRHSPlugin?: (dispatch: any, getState: any) => void },
     ): JSX.Element | null {
-        const currentPath = window.location.pathname;
-        if (!currentPath.startsWith('/esobsoft')) {
-            this.hideFilePreviewModal();
-        }
-
         const now = Date.now();
         if (now - this.lastExecutionTime < this.EXECUTION_GAP_MS) {
             console.log('Throttled duplicate call ignored.');
@@ -125,7 +111,7 @@ export default class Plugin {
         }
         this.lastExecutionTime = now;
 
-        if (this.shouldSkipFilePreview(props.fileInfo)) {
+        if (this.shouldSkipRenderRHS(props.fileInfo)) {
             return null;
         }
 
@@ -139,20 +125,20 @@ export default class Plugin {
             rhs.toggleRHSPlugin?.(store.dispatch, store.getState);
             updateLastClickedFileId('');
             setLastHandledFileId('');
+            hideFilePreviewModal();
             return null;
         }
 
         if (lastHandledFileId === props.fileInfo.id) {
             console.log('Skipping duplicate processing for file:', props.fileInfo.id);
             setLastHandledFileId('');
-            return null;
         }
 
+        console.log('previousFileId: ', previousFileId);
+        console.log('lastHandledFileId: ', lastHandledFileId);
         setLastHandledFileId(props.fileInfo.id);
         updateLastClickedFileId(props.fileInfo.id);
-
         this.fetchViewerURLAndOpenRHS(store, props.fileInfo);
-
         return (
             <RHSViewerLauncher
                 key={props.fileInfo.id}

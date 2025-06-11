@@ -138,8 +138,8 @@ def convert_to_pdf(input_path, fileHash, use_gotenberg=False):
                     logging.info(f"Preprocessing {notencoded_input_path} using prep_zh.py for Chinese font reduction")
                     try:
                         subprocess.run([
-                            "python",
-                            "/home/collabview/public/web/prep_zh.py",
+                            "python3",
+                            "/mattermost/plugins/mm_collabview/public/web",
                             notencoded_input_path,
                             notencoded_input_path,
                             "--font_decrement", "150"

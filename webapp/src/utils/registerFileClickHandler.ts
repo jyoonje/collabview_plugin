@@ -2,10 +2,9 @@
 // See LICENSE.txt for license information.
 
 import {CV_SUPPORTED_FILE_EXTENSIONS} from '@/constants/filePreview';
-import {closeRightHandSide} from '@/utils/rhsActions';
 import {showUnsupportedFileToast} from '@/utils/toast/unsupportedFileToast';
 
-export function registerFileClickHandler(store: any) {
+export function registerFileClickHandler() {
     document.addEventListener('click', (e) => {
         const clickedEl = e.target as HTMLElement;
 
@@ -21,8 +20,6 @@ export function registerFileClickHandler(store: any) {
             if (CV_SUPPORTED_FILE_EXTENSIONS.has(ext)) {
                 return;
             }
-
-            store.dispatch(closeRightHandSide());
 
             const modal = document.querySelector('.file-preview-modal');
             if (modal instanceof HTMLElement) {

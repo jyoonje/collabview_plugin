@@ -16,6 +16,7 @@ import {useAppDispatch} from '../hooks';
 
 import {CV_SUPPORTED_FILE_EXTENSIONS} from '@/constants/filePreview';
 import {getFileExtension, updateLastClickedFileId} from '@/utils/file';
+import {hideFilePreviewModal} from '@/utils/rhsActions';
 import {injectRHSStyle, COLLAVIEW_RHS_STYLE_ID, COLLAVIEW_RHS_CSS} from '@/utils/style';
 
 /* eslint-disable no-console */
@@ -67,18 +68,7 @@ export default function RHSViewerLauncher({fileInfo}: RHSViewerLauncher) {
         const ext = getFileExtension(fileInfo);
 
         if (CV_SUPPORTED_FILE_EXTENSIONS.has(ext)) {
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    const modal = document.querySelector('.file-preview-modal');
-
-                    if (modal instanceof HTMLElement) {
-                        modal.style.display = 'none';
-                        console.log('file-preview-modal hidden.');
-                    } else {
-                        console.warn('file-preview-modal not found.');
-                    }
-                }, 0);
-            });
+            hideFilePreviewModal();
 
             if (!currentUser) {
                 return () => {};

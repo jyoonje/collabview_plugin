@@ -18,14 +18,10 @@ export default function RightSidebarViewer() {
     const finalURL = viewerState?.finalURL || '';
     const converting = viewerState?.converting || false;
 
-    const modal = document.querySelector('div.file-preview-modal.modal');
-    if (modal instanceof HTMLElement) {
-        modal.style.display = 'none';
-    } else {
-        console.warn('file-preview-modal not found.');
-    }
-
     useEffect(() => {
+        if (!finalURL) {
+            return;
+        }
         const headerEl = document.querySelector('.sidebar--right__header .pull-right');
         let button = document.querySelector('#my-collabview-popup-button') as HTMLButtonElement | null;
 
@@ -45,6 +41,10 @@ export default function RightSidebarViewer() {
         }
     }, [finalURL]);
 
+    if (!finalURL) {
+        return null;
+    }
+
     if (converting) {
         return (
             <div style={{height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
@@ -61,7 +61,7 @@ export default function RightSidebarViewer() {
             height='100%'
             className='plugin-iframe'
             style={{border: 'none'}}
-            title='Collabview'
+            title='CollabView'
             sandbox='allow-scripts allow-same-origin'
         />
     );

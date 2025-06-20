@@ -1,0 +1,19 @@
+body.no-download .post-image__download,
+body.no-download .image-preview-utility-buttons-container,
+body.no-download .size-aware-image__download {
+    visibility: hidden;
+}
+
+.post .image-preview-utility-buttons-container a.size-aware-image__download {
+    display: inline-block !important;
+    width: 28px !important;
+    height: 28px !important;
+    padding: 2px !important;
+    border-radius: 4px !important;
+    text-align: center !important;
+}
+
+.post .image-preview-utility-buttons-container a.size-aware-image__download svg {
+    display: inline !important;
+    padding-top: 2px !important;
+}

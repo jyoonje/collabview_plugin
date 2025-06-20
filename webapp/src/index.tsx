@@ -3,12 +3,15 @@
 
 import type {PluginRegistry} from 'mattermost-webapp/plugins/registry';
 import React from 'react';
+import ReactDOM from 'react-dom';
 import type {Store, AnyAction} from 'redux';
 import type {ThunkDispatch} from 'redux-thunk';
 
 import type {GlobalState} from '@mattermost/types/store';
 
 import {openRHSWithViewer, setConvertFailed, setConverting, setConvertSuccess} from './actions/viewer';
+import AdminPanelSection from './components/AdminPanelSetting';
+import PluginManagementPopup from './components/PluginManagementPopup';
 import RHSViewerLauncher from './components/RHSViewerLauncher';
 import RightSidebarViewer from './components/RightSidebarViewer';
 import manifest from './manifest';
@@ -17,6 +20,7 @@ import {registerFileClickHandler} from './utils/registerFileClickHandler';
 import {registerMessageListener} from './utils/registerMessageListener';
 import {hideFilePreviewModal} from './utils/rhsActions';
 
+import {setCanDownload} from '@/actions/permissions';
 import {CV_SUPPORTED_FILE_EXTENSIONS} from '@/constants/filePreview';
 import type {FileInfo} from '@/types/files';
 import {
@@ -27,6 +31,16 @@ import {
     updateLastClickedFileId,
 } from '@/utils/file';
 import {searchablePdfToast} from '@/utils/toast/searchablePdfToast';
+import './file_download_button.css';
+import './popup.css';
+
+type ExtendedState = GlobalState & {
+    ['plugins-kr.esob.collabview-plugin']: {
+        permissions: {
+            canDownload: boolean;
+        };
+    };
+};
 
 /* eslint-disable no-console */
 export default class Plugin {
@@ -36,9 +50,9 @@ export default class Plugin {
 
     public async initialize(
         registry: PluginRegistry,
-        store: Store<GlobalState, AnyAction> & {
-            dispatch: ThunkDispatch<GlobalState, unknown, AnyAction>;
-            getState: () => GlobalState;
+        store: Store<ExtendedState, AnyAction> & {
+            dispatch: ThunkDispatch<ExtendedState, unknown, AnyAction>;
+            getState: () => ExtendedState;
         },
     ) {
         registry.registerReducer(reducer);
@@ -46,6 +60,7 @@ export default class Plugin {
         const rhs = this.registerRHSComponent(registry, store);
         const extendedRegistry = registry as PluginRegistry & {
             registerWebSocketEventHandler: (event: string, handler: (msg: any) => void) => void;
+            registerAdminConsoleCustomSection: (key: string, component: React.ComponentType) => void;
         };
 
         this.registerClickTracker();
@@ -53,16 +68,33 @@ export default class Plugin {
         registerMessageListener(store, rhs);
         registerFileClickHandler();
         this.registerWebSocketEventHandlers(store, extendedRegistry);
+        extendedRegistry.registerAdminConsoleCustomSection('collabview_custom_section', AdminPanelSection);
+
+        await this.fetchFileDownloadPermission(store);
+
+        store.subscribe(() => {
+            const state = store.getState();
+            const canDownload = state['plugins-kr.esob.collabview-plugin'].permissions.canDownload;
+
+            if (canDownload === true) {
+                document.body.classList.remove('no-download');
+            } else if (canDownload === false) {
+                document.body.classList.add('no-download');
+            } else if (canDownload === null || canDownload === undefined) {
+                // 아직 파일 다운로드 권한 조회 전이라면
+                console.log('파일 다운로드 권한: null');
+                this.fetchFileDownloadPermission(store);
+            } else {
+                console.log('파일 다운로드 권한: else');
+            }
+        });
     }
 
     public uninitialize() {}
 
     private registerFilePreviewComponent(
         registry: PluginRegistry,
-        store: Store<GlobalState, AnyAction> & {
-            dispatch: ThunkDispatch<GlobalState, unknown, AnyAction>;
-            getState: () => GlobalState;
-        },
+        store: Store<ExtendedState, AnyAction>,
         rhs: {
             id: string;
             hideRHSPlugin?: (dispatch: any, getState: any) => void;
@@ -78,7 +110,7 @@ export default class Plugin {
 
     private registerRHSComponent(
         registry: PluginRegistry,
-        _store: Store<GlobalState, AnyAction>,
+        _store: Store<ExtendedState, AnyAction>,
     ) {
         return registry.registerRightHandSidebarComponent(
             RightSidebarViewer,
@@ -101,7 +133,7 @@ export default class Plugin {
 
     private handleRHSComponent(
         props: { fileInfo: FileInfo },
-        store: Store<GlobalState, AnyAction> & { dispatch: any; getState: any },
+        store: Store<ExtendedState, AnyAction>,
         rhs: { id: string; toggleRHSPlugin?: (dispatch: any, getState: any) => void },
     ): JSX.Element | null {
         const now = Date.now();
@@ -134,8 +166,6 @@ export default class Plugin {
             setLastHandledFileId('');
         }
 
-        console.log('previousFileId: ', previousFileId);
-        console.log('lastHandledFileId: ', lastHandledFileId);
         setLastHandledFileId(props.fileInfo.id);
         updateLastClickedFileId(props.fileInfo.id);
         this.fetchViewerURLAndOpenRHS(store, props.fileInfo);
@@ -150,7 +180,7 @@ export default class Plugin {
     }
 
     private fetchViewerURLAndOpenRHS(
-        store: Store<GlobalState, AnyAction> & { dispatch: any; getState: any },
+        store: Store<ExtendedState, AnyAction>,
         fileInfo: FileInfo,
     ) {
         const ext = getFileExtension(fileInfo);
@@ -173,14 +203,14 @@ export default class Plugin {
         });
 
         fetch(`/plugins/kr.esob.collabview-plugin/api/v1/viewer-redirect?${queryParams}`).then((res) => res.json()).then(({finalURL}) => {
-            store.dispatch(openRHSWithViewer(finalURL, fileInfo.id, fileInfo.name, false));
+            (store.dispatch as ThunkDispatch<ExtendedState, unknown, AnyAction>)(openRHSWithViewer(finalURL, fileInfo.id, fileInfo.name, false));
         }).catch((error) => {
             console.error('Failed to load viewer URL:', error);
         });
     }
 
     private registerWebSocketEventHandlers(
-        store: Store<GlobalState, AnyAction> & { dispatch: any; getState: any },
+        store: Store<ExtendedState, AnyAction>,
         registry: PluginRegistry & {
             registerWebSocketEventHandler: (event: string, handler: (msg: any) => void) => void;
         },
@@ -194,6 +224,11 @@ export default class Plugin {
         });
         registry.registerWebSocketEventHandler('custom_kr.esob.collabview-plugin_searchable_pdf_failed', () => {
             store.dispatch(setConvertFailed());
+        });
+
+        registry.registerWebSocketEventHandler('custom_kr.esob.collabview-plugin_file_download_permission_updated', () => {
+            console.log('[Plugin] roles_updated received → re-fetching permission');
+            this.fetchFileDownloadPermission(store);
         });
     }
 
@@ -221,10 +256,26 @@ export default class Plugin {
             }
         });
     }
+
+    private async fetchFileDownloadPermission(
+        store: Store<ExtendedState, AnyAction>,
+    ) {
+        fetch('/plugins/kr.esob.collabview-plugin/api/v1/file-download-permission', {
+            credentials: 'include',
+        }).then((res) => res.json()).then(({canDownload}) => {
+            store.dispatch(setCanDownload(canDownload));
+        }).catch((err) => {
+            console.error('Permission check failed', err);
+        });
+    }
 }
 
 if (window.registerPlugin) {
     window.registerPlugin(manifest.id, new Plugin());
 } else {
     console.warn('[Plugin] window.registerPlugin is not defined');
+}
+
+if (window.location.pathname.includes('popup.html')) {
+    ReactDOM.render(<PluginManagementPopup/>, document.getElementById('root'));
 }

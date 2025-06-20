@@ -16,6 +16,14 @@ func (p *Plugin) processFile(post *model.Post, fileID string) {
 		return
 	}
 
+	channel, appErr := p.API.GetChannel(post.ChannelId)
+	if appErr != nil || channel == nil {
+		p.API.LogError("채널 정보 조회 실패", "channelID", post.ChannelId, "error", appErr.Error())
+		return
+	}
+
+	searchablePDFEnabledChannel := p.IsSearchablePDFEnabledChannel(channel.TeamId, post.ChannelId)
+
 	p.API.LogInfo("첨부된 파일 정보", "fileID", fileInfo.Id, "이름", fileInfo.Name, "저장 위치", fileInfo.Path)
 
 	sourceFile := config.GetConvertedFilePath(fileInfo.Id, fileInfo.Name)
@@ -43,7 +51,7 @@ func (p *Plugin) processFile(post *model.Post, fileID string) {
 	convertedEsobFile := sourceFile
 	convertedPdfFile := strings.TrimSuffix(convertedEsobFile, ".esob") + ".pdf"
 
-	if p.ShouldApplySearchable(fileInfo.Id) {
+	if searchablePDFEnabledChannel && p.ShouldApplySearchable(fileInfo.Id) {
 		p.API.LogInfo("SearchablePDF 적용 대상입니다", "fileID", fileInfo.Id)
 		p.handleSearchablePDF(post, convertedEsobFile, convertedPdfFile)
 		p.finalizeFile(convertedPdfFile, destFile)

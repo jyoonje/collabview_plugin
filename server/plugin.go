@@ -1,4 +1,3 @@
-// plugin.go
 package main
 
 import (
@@ -8,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +31,33 @@ type Plugin struct {
 	configuration     *configuration
 	configurationLock sync.RWMutex
 	cfg               *config.Config
+
+	adminSettingsCache *AdminPluginOptions
+	adminSettingsLock  sync.RWMutex
+
+	adminSettingsJob *cluster.Job
+}
+
+type AdminPluginOptions struct {
+	Webapp WebappSection `json:"webapp"`
+	Server ServerSection `json:"server"`
+}
+
+type WebappSection struct {
+	FileDownloadRoles []string `json:"file_download_roles"`
+}
+
+type ServerSection struct {
+	TeamSettings map[string]*TeamSetting `json:"team_settings"`
+}
+
+type TeamSetting struct {
+	ChannelSettings map[string]ChannelSetting `json:"channel_settings"`
+}
+
+type ChannelSetting struct {
+	SearchablePDF bool     `json:"searchablePDF"`
+	UseAnnotation []string `json:"use_annotation,omitempty"`
 }
 
 func (p *Plugin) OnActivate() error {
@@ -61,6 +86,21 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(err, "failed to schedule background job")
 	}
 	p.backgroundJob = job
+
+	adminJob, err := cluster.Schedule(
+		p.MattermostPlugin.API,
+		"AdminSettingsJob",
+		cluster.MakeWaitForRoundedInterval(5*time.Minute),
+		p.refreshAdminSettingsCache,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to schedule admin settings job")
+	}
+	p.adminSettingsJob = adminJob
+
+	// 최초 1회 즉시 갱신
+	p.refreshAdminSettingsCache()
+
 	return nil
 }
 
@@ -172,7 +212,8 @@ func (p *Plugin) FetchFileRedirect(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"finalURL": finalViewerURL})
 }
 
-func (p *Plugin) GetMarkupOptionsFromSystemConsole() map[string]bool {
+func (p *Plugin) GetMarkupOptionsFromCache() map[string]bool {
+	// 모든 주석 옵션 기본 false
 	options := map[string]bool{
 		"view_markup_button":               false,
 		"view_markup_color_toolbar":        false,
@@ -190,57 +231,194 @@ func (p *Plugin) GetMarkupOptionsFromSystemConsole() map[string]bool {
 		"allow_use_chatting":               false,
 	}
 
-	plugins := p.API.GetUnsanitizedConfig().PluginSettings.Plugins
+	p.adminSettingsLock.RLock()
+	defer p.adminSettingsLock.RUnlock()
 
-	raw, ok := any(plugins["kr.esob.collabview-plugin"]).(map[string]any)
-	if !ok {
-		p.API.LogError("Invalid type: expected map[string]any")
+	if p.adminSettingsCache == nil {
+		p.API.LogWarn("adminSettingsCache is nil, using defaults")
 		return options
 	}
 
-	p.API.LogInfo("[DEBUG] Dumping all plugin settings from System Console")
-	for k, v := range raw {
-		p.API.LogInfo("[DEBUG] Plugin setting", "key", k, "value", fmt.Sprintf("%v", v), "type", fmt.Sprintf("%T", v))
+	// 첫 번째 팀의 첫 번째 채널만 가져옴
+	for _, team := range p.adminSettingsCache.Server.TeamSettings {
+		for _, channel := range team.ChannelSettings {
+			for _, key := range channel.UseAnnotation {
+				options[key] = true
+			}
+			// 첫 채널만 보고 끝내기
+			return options
+		}
+		break
 	}
 
-	getBool := func(key string) bool {
-		val, ok := raw[key]
-		if !ok {
-			return false
-		}
-		switch v := val.(type) {
-		case string:
-			return strings.ToLower(v) == "true"
-		case bool:
-			return v
-		default:
-			return false
-		}
-	}
-
-	options["view_markup_button"] = getBool("view_markup_button")
-	options["view_markup_color_toolbar"] = getBool("view_markup_color_toolbar")
-	options["view_export_pdf_button"] = getBool("view_export_pdf_button")
-	options["view_check_button"] = getBool("view_check_button")
-	options["view_speech_bubble_button"] = getBool("view_speech_bubble_button")
-	options["view_speech_bubble_color_toolbar"] = getBool("view_speech_bubble_color_toolbar")
-	options["view_first_markup"] = getBool("view_first_markup")
-	options["view_first_speechbubble"] = getBool("view_first_speechbubble")
-	options["allow_markup_creation"] = getBool("allow_markup_creation")
-	options["allow_markup_move"] = getBool("allow_markup_move")
-	options["allow_speech_bubble_creation"] = getBool("allow_speech_bubble_creation")
-	options["allow_speech_bubble_move"] = getBool("allow_speech_bubble_move")
-	options["allow_view_chatting"] = getBool("allow_view_chatting")
-	options["allow_use_chatting"] = getBool("allow_use_chatting")
-
-	p.API.LogInfo("[DEBUG] All raw keys", "keys", reflect.ValueOf(raw).MapKeys())
-	p.API.LogInfo("Final markup options", "options", options)
 	return options
 }
 
 func (p *Plugin) handleGetMarkupOptions(w http.ResponseWriter, r *http.Request) {
-	options := p.GetMarkupOptionsFromSystemConsole()
+	options := p.GetMarkupOptionsFromCache()
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(options)
+}
+
+func (p *Plugin) handleSavePluginSettings(w http.ResponseWriter, r *http.Request) {
+	p.API.LogInfo("[INFO] /save-plugin-settings called")
+
+	defer func() {
+		if err := recover(); err != nil {
+			p.API.LogError("[FATAL] Panic in handleSavePluginSettings", "error", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
+	}()
+
+	var pluginOptions AdminPluginOptions
+
+	if err := json.NewDecoder(r.Body).Decode(&pluginOptions); err != nil {
+		p.API.LogError("Failed to decode JSON body", "error", err.Error())
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	dump, _ := json.MarshalIndent(pluginOptions, "", "  ")
+	p.API.LogInfo("[DEBUG] Full pluginOptions", "json", string(dump))
+
+	p.API.LogInfo("[DEBUG] Parsed PluginConfiguration",
+		"file_download_roles", fmt.Sprintf("%v", pluginOptions.Webapp.FileDownloadRoles),
+	)
+
+	if pluginOptions.Server.TeamSettings != nil {
+		for teamName, team := range pluginOptions.Server.TeamSettings {
+			if team == nil {
+				p.API.LogWarn("Team is nil", "team", teamName)
+				continue
+			}
+			if team.ChannelSettings == nil {
+				p.API.LogWarn("ChannelSettings is nil for team", "team", teamName)
+				continue
+			}
+			for channelName, channel := range team.ChannelSettings {
+				p.API.LogInfo("[DEBUG] Channel setting",
+					"team", teamName,
+					"channel", channelName,
+					"searchablePDF", channel.SearchablePDF,
+					"use_annotation", fmt.Sprintf("%v", channel.UseAnnotation),
+				)
+			}
+		}
+	} else {
+		p.API.LogWarn("TeamSettings is nil")
+	}
+
+	bytes, err := json.Marshal(pluginOptions)
+	if err != nil {
+		p.API.LogError("Failed to serialize config", "error", err.Error())
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := p.API.KVSet("admin_settings", bytes); err != nil {
+		p.API.LogError("Failed to save config to KVStore", "error", err.Error())
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	// KVSet 성공 이후 캐시 갱신
+	p.refreshAdminSettingsCache()
+
+	p.sendWebSocketEvent("", "file_download_permission_updated")
+
+	p.logCurrentPluginConfigFromKVStore()
+	w.WriteHeader(http.StatusOK)
+}
+
+func (p *Plugin) refreshAdminSettingsCache() {
+	raw, appErr := p.API.KVGet("admin_settings")
+	if appErr != nil {
+		p.API.LogError("Failed to KVGet admin_settings", "error", appErr.Error())
+		return
+	}
+	if raw == nil {
+		p.API.LogWarn("admin_settings not found in KVStore")
+		return
+	}
+
+	var opts AdminPluginOptions
+	if err := json.Unmarshal(raw, &opts); err != nil {
+		p.API.LogError("Failed to unmarshal admin_settings", "error", err.Error())
+		return
+	}
+
+	p.adminSettingsLock.Lock()
+	p.adminSettingsCache = &opts
+	p.adminSettingsLock.Unlock()
+
+	p.API.LogInfo("[INFO] Refreshed admin_settings cache from KVStore")
+}
+
+func (p *Plugin) handleGetPluginOptions(w http.ResponseWriter, r *http.Request) {
+	p.adminSettingsLock.RLock()
+	defer p.adminSettingsLock.RUnlock()
+
+	if p.adminSettingsCache == nil {
+		p.API.LogInfo("[INFO] Plugin Admin settings not found")
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(w).Encode(p.adminSettingsCache)
+	if err != nil {
+		http.Error(w, "Failed to encode", http.StatusInternalServerError)
+	}
+}
+
+func (p *Plugin) handleFileDownloadPermission(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("Mattermost-User-Id")
+	if userID == "" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	user, appErr := p.API.GetUser(userID)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// 캐시에서 가져오기
+	p.adminSettingsLock.RLock()
+	allowedRoles := []string{}
+	if p.adminSettingsCache != nil {
+		allowedRoles = p.adminSettingsCache.Webapp.FileDownloadRoles
+	}
+	p.adminSettingsLock.RUnlock()
+
+	userRoles := strings.Fields(user.Roles)
+
+	// 직접 비교
+	canDownload := false
+	for _, role := range userRoles {
+		for _, allowed := range allowedRoles {
+			if role == allowed {
+				canDownload = true
+				break
+			}
+		}
+		if canDownload {
+			break
+		}
+	}
+
+	// 응답
+	resp := map[string]bool{"canDownload": canDownload}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func (p *Plugin) logCurrentPluginConfigFromKVStore() {
+	raw, appErr := p.API.KVGet("admin_settings")
+	if appErr != nil || raw == nil {
+		p.API.LogError("Failed to fetch config from KVStore", "error", appErr)
+		return
+	}
+
+	p.API.LogInfo("[DEBUG] Raw admin_settings from KVStore", "json", string(raw))
 }

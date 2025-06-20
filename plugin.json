@@ -21,92 +21,15 @@
   "settings_schema": {
     "header": "",
     "footer": "",
-    "settings": [
+    "settings": [],
+    "sections": [
       {
-        "key": "view_markup_button",
-        "display_name": "Enable View Markup Button",
-        "type": "bool",
-        "default": true
-      },
-      {
-        "key": "view_markup_color_toolbar",
-        "display_name": "Enable View Markup Color Toolbar",
-        "type": "bool",
-        "default": true
-      },
-      {
-        "key": "view_export_pdf_button",
-        "display_name": "Enable View Export PDF Button",
-        "type": "bool",
-        "default": true
-      }
-    ,
-      {
-        "key": "view_check_button",
-        "display_name": "Enable View Check Button",
-        "type": "bool",
-        "default": true
-      }
-    ,
-      {
-        "key": "view_speech_bubble_button",
-        "display_name": "Enable View Speech-bubble Button",
-        "type": "bool",
-        "default": true
-      },
-      {
-        "key": "view_speech_bubble_color_toolbar",
-        "display_name": "Enable View Speech-bubble Color Toolbar",
-        "type": "bool",
-        "default": true
-      },
-      {
-        "key": "view_first_markup",
-        "display_name": "Enable View First Markup",
-        "type": "bool",
-        "default": true
-      },
-      {
-        "key": "view_first_speechbubble",
-        "display_name": "Enable View First Speech-bubble Markup",
-        "type": "bool",
-        "default": true
-      },
-      {
-        "key": "allow_markup_creation",
-        "display_name": "Enable Markup Creation",
-        "type": "bool",
-        "default": true
-      },
-      {
-        "key": "allow_markup_move",
-        "display_name": "Enable Markup Move",
-        "type": "bool",
-        "default": true
-      },
-      {
-        "key": "allow_speech_bubble_creation",
-        "display_name": "Enable Speech-bubble Creation",
-        "type": "bool",
-        "default": true
-      },
-      {
-        "key": "allow_speech_bubble_move",
-        "display_name": "Enable Speech-bubble Move",
-        "type": "bool",
-        "default": true
-      },
-      {
-        "key": "allow_view_chatting",
-        "display_name": "Enable View Chatting",
-        "type": "bool",
-        "default": true
-      },
-      {
-        "key": "allow_use_chatting",
-        "display_name": "Enable Use Chatting",
-        "type": "bool",
-        "default": true
+        "key": "collabview_custom_section",
+        "title": "Custom Admin Section",
+        "subtitle": "This is rendered via registerAdminConsoleCustomSection",
+        "settings": [],
+        "custom": true,
+        "fallback": false
       }
     ]
   }

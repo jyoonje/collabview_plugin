@@ -26,6 +26,12 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 
 	apiRouter.HandleFunc("/get-markup-options", p.handleGetMarkupOptions).Methods(http.MethodGet)
 
+	apiRouter.HandleFunc("/save-plugin-options", p.handleSavePluginSettings).Methods(http.MethodPost)
+
+	apiRouter.HandleFunc("/get-plugin-options", p.handleGetPluginOptions).Methods(http.MethodGet)
+
+	apiRouter.HandleFunc("/file-download-permission", p.handleFileDownloadPermission).Methods(http.MethodGet)
+
 	router.ServeHTTP(w, r)
 }
 

@@ -3,8 +3,10 @@
 
 import {combineReducers} from 'redux';
 
+import permissions from './permissions';
 import viewer from './viewer';
 
 export default combineReducers({
     viewer,
+    permissions,
 });

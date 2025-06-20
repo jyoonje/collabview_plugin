@@ -30,41 +30,25 @@ if (NPM_TARGET === 'build:watch' || NPM_TARGET === 'debug:watch') {
 }
 
 const config = {
-    entry: [
-        './src/index.tsx',
-    ],
+    entry: ['./src/index.tsx'],
     resolve: {
         alias: {
             '@': path.resolve(__dirname, 'src'),
         },
-        modules: [
-            'src',
-            'node_modules',
-            path.resolve(__dirname),
-        ],
+        modules: ['src', 'node_modules', path.resolve(__dirname)],
         extensions: ['*', '.js', '.jsx', '.ts', '.tsx'],
     },
     module: {
         rules: [
             {
-                test: /\.(js|jsx|ts|tsx)$/,
-                exclude: /node_modules/,
-                use: {
-                    loader: 'babel-loader',
-                    options: {
-                        cacheDirectory: true,
-
-                        // Babel configuration is in babel.config.js because jest requires it to be there.
-                    },
-                },
+                test: /\.css$/i,
+                use: ['style-loader', 'css-loader', 'postcss-loader'],
             },
             {
-                test: /\.(scss|css)$/,
+                test: /\.scss$/i,
                 use: [
                     'style-loader',
-                    {
-                        loader: 'css-loader',
-                    },
+                    'css-loader',
                     {
                         loader: 'sass-loader',
                         options: {
@@ -74,6 +58,16 @@ const config = {
                         },
                     },
                 ],
+            },
+            {
+                test: /\.(js|jsx|ts|tsx)$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        cacheDirectory: true,
+                    },
+                },
             },
         ],
     },
@@ -92,7 +86,8 @@ const config = {
         publicPath: '/',
         filename: 'main.js',
     },
-    mode: (isDev) ? 'eval-source-map' : 'production',
+    mode: isDev ? 'development' : 'production',
+    devtool: isDev ? 'inline-source-map' : 'source-map',
     plugins,
 };
 

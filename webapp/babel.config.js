@@ -17,7 +17,7 @@ const config = {
             shippedProposals: true,
         }],
         ['@babel/preset-react', {
-            useBuiltIns: true,
+            runtime: 'classic',
         }],
         ['@babel/typescript', {
             allExtensions: true,

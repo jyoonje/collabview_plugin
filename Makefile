@@ -246,6 +246,7 @@ endif
 ifneq ($(HAS_WEBAPP),)
 	mkdir -p dist/$(PLUGIN_ID)/webapp
 	cp -r webapp/dist dist/$(PLUGIN_ID)/webapp/
+	cp webapp/dist/main.js dist/$(PLUGIN_ID)/public/
 endif
 ifneq ($(wildcard config/),)
 	cp -r config dist/$(PLUGIN_ID)/
